@@ -1,4 +1,4 @@
-package imagecanvas
+package adaptiveimagewidget
 
 import (
 	"errors"
@@ -12,12 +12,12 @@ import (
 	"github.com/disintegration/imaging"
 )
 
-// ImageWidget is a Fyne widget that contains a single canvas.Image
+// AdaptiveImageWidget is a Fyne widget that contains a single canvas.Image
 //
 // Displaying larger images in a window requires that the graphics display subsystem filter and
 // rescale the image for display. This can take significant time.
 //
-// The ImageWidget seeks to solve this problem by adaptively setting the resolution of the image dynamically.
+// The AdaptiveImageWidget seeks to solve this problem by adaptively setting the resolution of the image dynamically.
 // Internally, it converts the image to a Gaussian pyramid, ie a set of increasingly lower-resolution images.
 // One of these images is then displayed at all times.
 // The displayed image is selected based on the size of the imagecanvas's container. Therefore:
@@ -28,7 +28,7 @@ import (
 //
 //	updateRate : rate at which a check is made for updates to the container size (default 200 ms)
 //	index      : the current layer of the pyramid which is being used in the image.Canvas
-type ImageWidget struct {
+type AdaptiveImageWidget struct {
 	widget.BaseWidget
 	Image      canvas.Image
 	Pyramid    []*image.Image
@@ -40,7 +40,7 @@ type ImageWidget struct {
 //
 //	img      the image to be displayed
 //	minsize  the smallest dimension of the smallest image in the pyramid (it will be at least 32 pixels)
-func NewImageWidget(img image.Image, minsize int) (*ImageWidget, error) {
+func NewImageWidget(img image.Image, minsize int) (*AdaptiveImageWidget, error) {
 	if minsize < 32 {
 		minsize = 32
 	}
@@ -51,7 +51,7 @@ func NewImageWidget(img image.Image, minsize int) (*ImageWidget, error) {
 	index := len(pyr) - 1
 	ci := *canvas.NewImageFromImage(*pyr[index])
 	ci.FillMode = canvas.ImageFillContain
-	w := &ImageWidget{
+	w := &AdaptiveImageWidget{
 		Image:   ci,
 		Pyramid: pyr,
 		index:   index,
@@ -83,13 +83,13 @@ func NewImageWidget(img image.Image, minsize int) (*ImageWidget, error) {
 	return w, nil
 }
 
-func (item *ImageWidget) CreateRenderer() fyne.WidgetRenderer {
+func (item *AdaptiveImageWidget) CreateRenderer() fyne.WidgetRenderer {
 	c := container.NewStack(&item.Image)
 	ren := widget.NewSimpleRenderer(c)
 	return ren
 }
 
-func (item *ImageWidget) SetUpdateRate(milliseconds int) error {
+func (item *AdaptiveImageWidget) SetUpdateRate(milliseconds int) error {
 	if milliseconds < 1 || milliseconds > 10000 {
 		return errors.New("update rate should be between 1 and 10000")
 	}
@@ -97,12 +97,12 @@ func (item *ImageWidget) SetUpdateRate(milliseconds int) error {
 	return nil
 }
 
-func (item *ImageWidget) GetUpdateRate() int {
+func (item *AdaptiveImageWidget) GetUpdateRate() int {
 	return item.updateRate
 }
 
 // increase the resolution
-func (m *ImageWidget) increaseResolution() error {
+func (m *AdaptiveImageWidget) increaseResolution() error {
 	if m.index == 0 {
 		return errors.New("already at maximum resolution")
 	}
@@ -112,7 +112,7 @@ func (m *ImageWidget) increaseResolution() error {
 }
 
 // reduce the resolution
-func (m *ImageWidget) reduceResolution() error {
+func (m *AdaptiveImageWidget) reduceResolution() error {
 	if m.index == len(m.Pyramid)-1 {
 		return errors.New("already at minimum resolution")
 	}
@@ -122,7 +122,7 @@ func (m *ImageWidget) reduceResolution() error {
 }
 
 // implement the desired resolution
-func (m *ImageWidget) updateResolution() {
+func (m *AdaptiveImageWidget) updateResolution() {
 	ci := canvas.NewImageFromImage(*m.Pyramid[m.index])
 	ci.FillMode = canvas.ImageFillContain
 	m.Image = *ci
