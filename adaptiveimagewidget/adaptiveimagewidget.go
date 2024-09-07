@@ -61,7 +61,7 @@ func NewImageWidget(img image.Image, minsize int) (*AdaptiveImageWidget, error) 
 	w.ExtendBaseWidget(w)
 
 	var xratio, yratio, ratio float32
-	var maxres float32 = .8
+	var maxres float32 = .95
 	var minres float32 = maxres / 2.05
 
 	go func() {
@@ -128,6 +128,7 @@ func (m *AdaptiveImageWidget) reduceResolution() error {
 func (m *AdaptiveImageWidget) updateResolution() {
 	ci := canvas.NewImageFromImage(*m.Pyramid[m.index])
 	ci.FillMode = canvas.ImageFillContain
+	ci.ScaleMode=canvas.ImageScaleFastest
 	m.Image = *ci
 	m.Refresh()
 }
