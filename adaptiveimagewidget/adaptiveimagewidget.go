@@ -28,12 +28,14 @@ import (
 //
 //	updateRate : rate at which a check is made for updates to the container size (default 200 ms)
 //	index      : the current layer of the pyramid which is being used in the image.Canvas
+//  quality    : sets the threshold for changing the resolution
 type AdaptiveImageWidget struct {
 	widget.BaseWidget
 	Image      canvas.Image
 	Pyramid    []*image.Image
 	index      int
 	updateRate int `default:"200"`
+	quality float32 `default:"1.0"`
 }
 
 // creates a new ImageWidget
@@ -51,6 +53,7 @@ func NewImageWidget(img image.Image, minsize int) (*AdaptiveImageWidget, error) 
 	index := len(pyr) - 1
 	ci := *canvas.NewImageFromImage(*pyr[index])
 	ci.FillMode = canvas.ImageFillContain
+	ci.ScaleMode=canvas.ImageScaleFastest
 	w := &AdaptiveImageWidget{
 		Image:   ci,
 		Pyramid: pyr,
@@ -59,7 +62,7 @@ func NewImageWidget(img image.Image, minsize int) (*AdaptiveImageWidget, error) 
 	w.ExtendBaseWidget(w)
 
 	var xratio, yratio, ratio float32
-	var maxres float32 = 0.8
+	var maxres float32 = 1/w.quality
 	var minres float32 = maxres / 2.05
 
 	go func() {
@@ -99,6 +102,18 @@ func (item *AdaptiveImageWidget) SetUpdateRate(milliseconds int) error {
 
 func (item *AdaptiveImageWidget) GetUpdateRate() int {
 	return item.updateRate
+}
+
+func (item *AdaptiveImageWidget) SetQuality(quality float32) error {
+	if quality < 0.5 || quality > 2.0 {
+		return errors.New("quality should be between 0.01 and 2.0")
+	}
+	item.quality = quality
+	return nil
+}
+
+func (item *AdaptiveImageWidget) GetQuality() float32 {
+	return item.quality
 }
 
 // increase the resolution
