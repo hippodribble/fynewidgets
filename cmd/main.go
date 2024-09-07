@@ -1,6 +1,4 @@
-package cmd
-
-
+package main
 
 import (
 	"image"
@@ -25,17 +23,15 @@ func main() {
 	ap := app.New()
 	w := ap.NewWindow("Check ImageWidget")
 	w.SetContent(gui())
-	// w.SetFullScreen(true)
 	w.Resize(fyne.NewSize(800, 800))
 	w.ShowAndRun()
-
 }
 
 func gui() *fyne.Container {
 	bCanvas := widget.NewButton("Canvas.Image", openImageNormally)
 	bAdaptive := widget.NewButton("AdaptiveImageWidget", openImage)
-	top := container.NewHBox(bCanvas,bAdaptive)
-
+	top := container.NewHBox(bCanvas,bAdaptive,widget.NewLabel("Quality"))
+	
 	stack = container.NewStack()
 
 	status = widget.NewLabel("Load a large image")
@@ -51,6 +47,7 @@ func gui() *fyne.Container {
 
 func openImage() {
 	dlg := dialog.NewFileOpen(func(uc fyne.URIReadCloser, err error) {
+		
 		stack.RemoveAll()
 		progress.Show()
 		defer progress.Hide()
@@ -58,6 +55,7 @@ func openImage() {
 			status.SetText("File dialog error")
 			return
 		}
+
 		uri := uc.URI()
 		status.SetText("Loading file " + uri.Path())
 		progress.Start()
@@ -66,6 +64,7 @@ func openImage() {
 			status.SetText("Error opening file")
 			return
 		}
+
 		im, format, err := image.Decode(f)
 		if err != nil {
 			status.SetText("File is not an image")
@@ -80,7 +79,9 @@ func openImage() {
 			status.SetText("Error creating widget: " + err.Error())
 			return
 		}
+
 		widget.SetUpdateRate(200)
+		
 		stack.Add(widget)
 		stack.Refresh()
 		progress.Stop()

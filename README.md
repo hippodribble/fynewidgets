@@ -32,7 +32,9 @@ Below is a small fyne app that will use the AdaptiveImageWidget.
 
 ```
 
-package main
+package cmd
+
+
 
 import (
 	"image"
@@ -64,8 +66,9 @@ func main() {
 }
 
 func gui() *fyne.Container {
-	bFile := widget.NewButton("Load", openImage)
-	top := container.NewHBox(bFile)
+	bCanvas := widget.NewButton("Canvas.Image", openImageNormally)
+	bAdaptive := widget.NewButton("AdaptiveImageWidget", openImage)
+	top := container.NewHBox(bCanvas,bAdaptive)
 
 	stack = container.NewStack()
 
@@ -82,6 +85,7 @@ func gui() *fyne.Container {
 
 func openImage() {
 	dlg := dialog.NewFileOpen(func(uc fyne.URIReadCloser, err error) {
+		stack.RemoveAll()
 		progress.Show()
 		defer progress.Hide()
 		if err != nil {
@@ -111,7 +115,6 @@ func openImage() {
 			return
 		}
 		widget.SetUpdateRate(200)
-		stack.RemoveAll()
 		stack.Add(widget)
 		stack.Refresh()
 		progress.Stop()
@@ -122,6 +125,44 @@ func openImage() {
 	dlg.Show()
 }
 
+func openImageNormally() {
+	dlg := dialog.NewFileOpen(func(uc fyne.URIReadCloser, err error) {
+		stack.RemoveAll()
+		progress.Show()
+		defer progress.Hide()
+		if err != nil {
+			status.SetText("File dialog error")
+			return
+		}
+		uri := uc.URI()
+		status.SetText("Loading file " + uri.Path())
+		progress.Start()
+		f, err := os.Open(uri.Path())
+		if err != nil {
+			status.SetText("Error opening file")
+			return
+		}
+		im, format, err := image.Decode(f)
+		if err != nil {
+			status.SetText("File is not an image")
+			return
+		}
+
+		progress.Stop()
+		status.SetText("Displaying " + format)
+		progress.Start()
+		widget:=canvas.NewImageFromImage(im)
+		widget.FillMode=canvas.ImageFillContain
+		widget.ScaleMode=canvas.ImageScaleFastest
+		stack.Add(widget)
+		stack.Refresh()
+		progress.Stop()
+		status.SetText("Done")
+	}, fyne.CurrentApp().Driver().AllWindows()[0])
+
+	dlg.SetFilter(storage.NewExtensionFileFilter([]string{".jpg", ".png", ".gif"}))
+	dlg.Show()
+}
 
 
 ```
