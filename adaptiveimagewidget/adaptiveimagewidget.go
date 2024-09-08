@@ -3,7 +3,6 @@ package adaptiveimagewidget
 import (
 	"errors"
 	"image"
-	"log"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -77,7 +76,7 @@ func (m *AdaptiveImageWidget) Resize(size fyne.Size) {
 	}
 }
 
-func (m *AdaptiveImageWidget)Refresh(){
+func (m *AdaptiveImageWidget) Refresh() {
 	m.Resize(m.Size()) // without this, maximising the screen will fail to select the appropriate resolution from the pyramid
 }
 
