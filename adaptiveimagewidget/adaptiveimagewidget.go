@@ -3,7 +3,7 @@ package adaptiveimagewidget
 import (
 	"errors"
 	"image"
-	"time"
+	"log"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -23,18 +23,11 @@ import (
 // The displayed image is selected based on the size of the imagecanvas's container. Therefore:
 //   - A small image in a large window is displayed at full resolution.
 //   - A large image in a small window has its resolution reduced.
-//
-// A goroutine monitors the container size periodically (at the update rate), to see if any change is required (and makes the change.)
-//
-//	updateRate : rate at which a check is made for updates to the container size (default 200 ms)
-//	index      : the current layer of the pyramid which is being used in the image.Canvas
 type AdaptiveImageWidget struct {
 	widget.BaseWidget
-	Image      canvas.Image
-	Pyramid    []*image.Image
-	index      int
-	updateRate int `default:"200"`
-	quality float32 `default:"1.0"`
+	Image        canvas.Image
+	Pyramid      []*image.Image
+	currentlayer int
 }
 
 // creates a new ImageWidget
@@ -50,86 +43,74 @@ func NewImageWidget(img image.Image, minsize int) (*AdaptiveImageWidget, error) 
 		return nil, errors.Join(err)
 	}
 	index := len(pyr) - 1
-	ci := *canvas.NewImageFromImage(*pyr[index])
+	ci := canvas.NewImageFromImage(*pyr[index])
 	ci.FillMode = canvas.ImageFillContain
-	ci.ScaleMode=canvas.ImageScaleFastest
+	ci.ScaleMode = canvas.ImageScaleFastest
 	w := &AdaptiveImageWidget{
-		Image:   ci,
-		Pyramid: pyr,
-		index:   index,
+		Image:        *ci,
+		Pyramid:      pyr,
+		currentlayer: index,
 	}
 	w.ExtendBaseWidget(w)
-
-	var xratio, yratio, ratio float32
-	var maxres float32 = .95
-	var minres float32 = maxres / 2.05
-
-	go func() {
-		for {
-			time.Sleep(time.Millisecond * time.Duration(w.updateRate))
-
-			size := w.Size()
-			xratio = size.Width / float32((*w.Pyramid[w.index]).Bounds().Dx())
-			yratio = size.Height / float32((*w.Pyramid[w.index]).Bounds().Dy())
-			ratio = min(xratio, yratio)
-			if ratio < maxres && ratio > minres {
-				continue
-			}
-			if ratio > maxres {
-				w.increaseResolution()
-			} else {
-				w.reduceResolution()
-			}
-		}
-	}()
 	return w, nil
 }
 
-func (item *AdaptiveImageWidget) CreateRenderer() fyne.WidgetRenderer {
-	c := container.NewStack(&item.Image)
+func (m *AdaptiveImageWidget) Resize(size fyne.Size) {
+
+	var xratio, yratio, ratio float32
+	var maxres float32 = .95
+	var minres float32 = maxres / 2.05 // >2 prevents resolution from oscillating
+
+	m.BaseWidget.Resize(size) // needs to be called before changing the widget's image, otherwise the image gets overwritten by the resize
+
+	xratio = size.Width / float32((*m.Pyramid[m.currentlayer]).Bounds().Dx())
+	yratio = size.Height / float32((*m.Pyramid[m.currentlayer]).Bounds().Dy())
+	ratio = min(xratio, yratio)
+	if ratio < maxres && ratio > minres {
+		return
+	}
+
+	if ratio > maxres {
+		m.increaseResolution()
+	} else {
+		m.reduceResolution()
+	}
+}
+
+func (m *AdaptiveImageWidget)Refresh(){
+	m.Resize(m.Size()) // without this, maximising the screen will fail to select the appropriate resolution from the pyramid
+}
+
+func (m *AdaptiveImageWidget) CreateRenderer() fyne.WidgetRenderer {
+	c := container.NewStack(&m.Image)
 	ren := widget.NewSimpleRenderer(c)
 	return ren
 }
 
-func (item *AdaptiveImageWidget) SetUpdateRate(milliseconds int) error {
-	if milliseconds < 1 || milliseconds > 10000 {
-		return errors.New("update rate should be between 1 and 10000")
-	}
-	item.updateRate = milliseconds
-	return nil
-}
-
-func (item *AdaptiveImageWidget) GetUpdateRate() int {
-	return item.updateRate
-}
-
-
 // increase the resolution
 func (m *AdaptiveImageWidget) increaseResolution() error {
-	if m.index == 0 {
+	if m.currentlayer == 0 {
 		return errors.New("already at maximum resolution")
 	}
-	m.index -= 1
+	m.currentlayer -= 1
 	m.updateResolution()
 	return nil
 }
 
 // reduce the resolution
 func (m *AdaptiveImageWidget) reduceResolution() error {
-	if m.index == len(m.Pyramid)-1 {
+	if m.currentlayer == len(m.Pyramid)-1 {
 		return errors.New("already at minimum resolution")
 	}
-	m.index += 1
+	m.currentlayer += 1
 	m.updateResolution()
 	return nil
 }
 
 // implement the desired resolution
 func (m *AdaptiveImageWidget) updateResolution() {
-	ci := canvas.NewImageFromImage(*m.Pyramid[m.index])
-	ci.FillMode = canvas.ImageFillContain
-	ci.ScaleMode=canvas.ImageScaleFastest
-	m.Image = *ci
+	m.Image.Image = *m.Pyramid[m.currentlayer]
+	m.Image.Refresh()
 	m.Refresh()
 }
 
@@ -143,15 +124,14 @@ func makePyramid(img *image.Image, minsize int) ([]*image.Image, error) {
 		return nil, errors.New("image is already smaller than the required minimum")
 	}
 
-	var layers []*image.Image = []*image.Image{img}
+	var pyramid []*image.Image = []*image.Image{img}
 
 	for h > minsize {
-		lastlayer := layers[len(layers)-1]
-
+		lastlayer := pyramid[len(pyramid)-1]
 		b := (*lastlayer).Bounds()
 		newlayer := image.Image(imaging.Resize(*lastlayer, b.Dx()/2, b.Dy()/2, imaging.Gaussian))
-		layers = append(layers, &newlayer)
+		pyramid = append(pyramid, &newlayer)
 		h /= 2
 	}
-	return layers, nil
+	return pyramid, nil
 }

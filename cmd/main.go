@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"os"
@@ -18,6 +19,7 @@ import (
 var status *widget.Label
 var progress *widget.ProgressBarInfinite
 var stack *fyne.Container
+var description *widget.Label
 
 func main() {
 	ap := app.New()
@@ -30,16 +32,19 @@ func main() {
 func gui() *fyne.Container {
 	bCanvas := widget.NewButton("Canvas.Image", openImageNormally)
 	bAdaptive := widget.NewButton("AdaptiveImageWidget", openImage)
-	top := container.NewHBox(bCanvas,bAdaptive,widget.NewLabel("Quality"))
-	
+	description = widget.NewLabel("")
+	description.TextStyle.Italic=true
+	top := container.NewBorder(nil,nil,container.NewHBox(bCanvas, bAdaptive),nil, description)
+
 	stack = container.NewStack()
 
 	status = widget.NewLabel("Load a large image")
+	status.TextStyle.Bold=true
 	progress = widget.NewProgressBarInfinite()
 	progress.Hide()
 	r := canvas.NewRectangle(color.Transparent)
 	r.Resize(fyne.NewSize(200, 10))
-	bottom :=  container.NewBorder(nil,nil,nil,container.NewStack(r,progress),status)
+	bottom := container.NewBorder(nil, nil, nil, container.NewStack(r, progress), status)
 
 	b := container.NewBorder(top, bottom, nil, nil, stack)
 	return b
@@ -47,11 +52,12 @@ func gui() *fyne.Container {
 
 func openImage() {
 	dlg := dialog.NewFileOpen(func(uc fyne.URIReadCloser, err error) {
-		
+
 		stack.RemoveAll()
+		description.SetText("")
 		progress.Show()
 		defer progress.Hide()
-		if err != nil {
+		if err != nil || uc==nil {
 			status.SetText("File dialog error")
 			return
 		}
@@ -64,7 +70,21 @@ func openImage() {
 			status.SetText("Error opening file")
 			return
 		}
+		cfg, _, err := image.DecodeConfig(f)
+		if err != nil {
+			status.SetText("File is not an image")
+			return
+		}
+		pixcount := cfg.Height * cfg.Width
+		var pix string
+		if pixcount < 1000000 {
+			pix = "< 1 megapixel"
+		} else {
+			pix = fmt.Sprintf("%.1f megapixels", float64(pixcount)/1000000)
+		}
 
+		description.SetText(fmt.Sprintf("%s - %dx%d (%s) ", uri.Name(), cfg.Width, cfg.Height, pix))
+		f.Seek(0, 0)
 		im, format, err := image.Decode(f)
 		if err != nil {
 			status.SetText("File is not an image")
@@ -80,8 +100,6 @@ func openImage() {
 			return
 		}
 
-		widget.SetUpdateRate(200)
-		
 		stack.Add(widget)
 		stack.Refresh()
 		progress.Stop()
@@ -95,6 +113,7 @@ func openImage() {
 func openImageNormally() {
 	dlg := dialog.NewFileOpen(func(uc fyne.URIReadCloser, err error) {
 		stack.RemoveAll()
+		description.SetText("")
 		progress.Show()
 		defer progress.Hide()
 		if err != nil {
@@ -109,18 +128,32 @@ func openImageNormally() {
 			status.SetText("Error opening file")
 			return
 		}
+		cfg, _, err := image.DecodeConfig(f)
+		if err != nil {
+			status.SetText("File is not an image")
+			return
+		}
+		pixcount := cfg.Height * cfg.Width
+		var pix string
+		if pixcount < 1000000 {
+			pix = "< 1 megapixel"
+		} else {
+			pix = fmt.Sprintf("%.1f megapixels", float64(pixcount)/1000000)
+		}
+
+		description.SetText(fmt.Sprintf("%s - %dx%d (%s) ", uri.Name(), cfg.Width, cfg.Height, pix))
+		f.Seek(0, 0)
 		im, format, err := image.Decode(f)
 		if err != nil {
 			status.SetText("File is not an image")
 			return
 		}
-
 		progress.Stop()
 		status.SetText("Displaying " + format)
 		progress.Start()
-		widget:=canvas.NewImageFromImage(im)
-		widget.FillMode=canvas.ImageFillContain
-		widget.ScaleMode=canvas.ImageScaleFastest
+		widget := canvas.NewImageFromImage(im)
+		widget.FillMode = canvas.ImageFillContain
+		widget.ScaleMode = canvas.ImageScaleFastest
 		stack.Add(widget)
 		stack.Refresh()
 		progress.Stop()
