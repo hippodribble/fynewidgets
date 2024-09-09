@@ -4,7 +4,6 @@ import (
 	"errors"
 	"image"
 	"image/draw"
-	"log"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -31,11 +30,11 @@ type AdaptiveImageWidget struct {
 	widget.BaseWidget
 	Image             canvas.Image
 	Pyramid           []*image.NRGBA
+	Zoom              *imagedetailwidget.ImageDetailWidget
+	Requestfullscreen binding.Bool
 	currentlayer      int
 	detailedImage     *image.NRGBA
 	dragging          bool
-	Zoom              *imagedetailwidget.ImageDetailWidget
-	Requestfullscreen binding.Bool
 }
 
 // creates a new ImageWidget
@@ -92,6 +91,7 @@ func (m *AdaptiveImageWidget) Resize(size fyne.Size) {
 	} else {
 		m.reduceResolution()
 	}
+
 }
 
 func (m *AdaptiveImageWidget) Refresh() {
@@ -167,16 +167,15 @@ func (m *AdaptiveImageWidget) MouseDown(e *desktop.MouseEvent) {
 	m.dragging = true
 }
 func (m *AdaptiveImageWidget) MouseUp(e *desktop.MouseEvent) {
-	if !m.dragging{
+	if !m.dragging {
 		return
 	}
-	m.dragging=false
-	log.Println("Toggle Visibility")
+	m.dragging = false
 	z, _ := m.Requestfullscreen.Get()
 	m.Requestfullscreen.Set(!z)
 }
 
-func (m *AdaptiveImageWidget) MouseIn(e *desktop.MouseEvent) { log.Println("In") }
+func (m *AdaptiveImageWidget) MouseIn(e *desktop.MouseEvent) {}
 
 func (m *AdaptiveImageWidget) MouseMoved(e *desktop.MouseEvent) {
 	if m.detailedImage == nil {
@@ -211,11 +210,10 @@ func (m *AdaptiveImageWidget) MouseMoved(e *desktop.MouseEvent) {
 	// m.detailedImage = image.NewNRGBA(image.Rect(0, 0, 2*hw, 2*hh))
 	// draw.Draw(m.detailedImage,m.detailedImage.Rect,image.NewUniform(color.Transparent),image.Pt(0,0),draw.Src)
 	draw.Draw(m.detailedImage, m.detailedImage.Rect, m.Pyramid[0], image.Pt(int(X), int(Y)).Sub(image.Pt(hw, hh)), draw.Src)
+	
 	m.Zoom.Refresh()
 
 }
-func (m *AdaptiveImageWidget) MouseOut()    { log.Println("Out") }
-func (m *AdaptiveImageWidget) DataChanged() { log.Println("Data Change") }
 
-// func (m *AdaptiveImageWidget) AddListener(binding.DataListener)    { log.Println("Adding Listener") }
-// func (m *AdaptiveImageWidget) RemoveListener(binding.DataListener) { log.Println("Removing Listener") }
+// to satisfy the interface
+func (m *AdaptiveImageWidget) MouseOut() {}

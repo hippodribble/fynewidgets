@@ -6,18 +6,23 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 )
 
 type ImageDetailWidget struct {
 	widget.BaseWidget
-	image *image.NRGBA
+	image     *image.NRGBA
+	mousedown bool
+	Updated   binding.Bool
 }
 
 // uses the highest-reolution image available to show a small area
 func NewImageDetailWidget(img *image.NRGBA) *ImageDetailWidget {
 	detail := new(ImageDetailWidget)
 	detail.image = img
+	detail.Updated = binding.NewBool()
 	detail.ExtendBaseWidget(detail)
 	return detail
 }
@@ -40,4 +45,13 @@ func (w *ImageDetailWidget) Refresh() {
 		return
 	}
 	w.BaseWidget.Refresh()
+}
+
+func (w *ImageDetailWidget) MouseUp(e *desktop.MouseEvent) {
+	if !w.mousedown {
+		return
+	}
+}
+func (w *ImageDetailWidget) MouseDown(e *desktop.MouseEvent) {
+	w.mousedown = true
 }

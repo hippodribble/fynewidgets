@@ -3,7 +3,7 @@ package listablethumbnail
 import (
 	"fmt"
 	"image"
-	"log"
+	"image/color"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -24,17 +24,17 @@ type Thumbnail struct {
 	pixels  string
 }
 
-func NewThumbNail(uri fyne.URI, minsize int) (*Thumbnail, error) {
+func NewThumbNail(uri fyne.URI, w, h int) (*Thumbnail, error) {
 	t := Thumbnail{URI: uri}
 	im, err := imaging.Open(uri.Path(), imaging.AutoOrientation(true))
 	if err != nil {
 		return nil, err
 	}
-	// t.Image=imaging.Thumbnail(im,minsize,minsize,imaging.Gaussian)
-	t.Image=imaging.Fill(im,minsize,minsize,imaging.Center,imaging.Gaussian)
-	
+	// t.Image=imaging.Thumbnail(im,w,h,imaging.Gaussian)
+	t.Image = imaging.Fit(im, w, h, imaging.Gaussian)
+
 	t.Caption = uri.Name()
-	t.label = widget.NewLabel(uri.Name())
+	t.label = widget.NewLabel(t.Caption)
 	t.label.Alignment = fyne.TextAlignCenter
 	t.label.Truncation = fyne.TextTruncateEllipsis
 	t.canvas = canvas.NewImageFromImage(t.Image)
@@ -51,19 +51,18 @@ func NewThumbNail(uri fyne.URI, minsize int) (*Thumbnail, error) {
 }
 
 func (t *Thumbnail) CreateRenderer() fyne.WidgetRenderer {
-	b := container.NewBorder( t.label,nil, nil, nil, t.canvas)
+	blackrect:=canvas.NewRectangle(color.NRGBA{0,0,0,132})
+	b := container.NewStack(t.canvas, container.NewBorder(nil, container.NewStack(blackrect, t.label), nil, nil, nil))
 	return widget.NewSimpleRenderer(b)
 }
 
 func (t *Thumbnail) MouseIn(e *desktop.MouseEvent) {
-	// widget.NewPopUp(widget.NewLabel("TEST"), fyne.CurrentApp().Driver().CanvasForObject(t))
-	log.Println("In Detail")
+	t.label.SetText(t.pixels)
 }
 
-func (t *Thumbnail) MouseOver(e *desktop.MouseEvent) {
-	log.Println("moved detail")
+func (t *Thumbnail) MouseMoved(e *desktop.MouseEvent) {
 }
 
 func (t *Thumbnail) MouseOut() {
-	log.Println("Out detail")
+	t.label.SetText(t.Caption)
 }

@@ -23,6 +23,8 @@ import (
 	th "github.com/hippodribble/fynewidgets/listablethumbnail"
 )
 
+const thumbsize int=400
+
 var status *widget.Label
 var infiniteProgress *widget.ProgressBarInfinite
 var progress *widget.ProgressBar
@@ -30,8 +32,7 @@ var centre *fyne.Container
 var description *widget.Label
 var lastfolder fyne.ListableURI
 var pictureURIs []fyne.URI
-var listbox,zoombox, top, leftside,b *fyne.Container
-var tophidden,lefthidden bool
+var listbox, zoombox, top, leftside, rightside, mainlayout, bottom *fyne.Container
 
 // var dlg *dialog.FileDialog
 
@@ -40,16 +41,18 @@ func main() {
 	w := ap.NewWindow("Check ImageWidget")
 	w.SetContent(gui())
 	w.Resize(fyne.NewSize(1200, 900))
+
+	w.SetOnClosed(killMinorWindows)
 	w.ShowAndRun()
 }
 
 func gui() *fyne.Container {
-	bCanvas := widget.NewButton("Canvas.Image", openImageNormally)
-	bAdaptive := widget.NewButton("AdaptiveImageWidget", openImage)
+	bCanvas := widget.NewButton("Full Image", openImageNormally)
+	bAdaptive := widget.NewButton("Auto Image", openImage)
 	description = widget.NewLabel("")
 	description.TextStyle.Italic = true
 	bFolder := widget.NewButton("Folder", openFolder)
-	top = container.NewBorder(nil, nil, container.NewHBox(bCanvas, bAdaptive), bFolder, description)
+	top = container.NewBorder(nil, nil, container.NewHBox(bCanvas, bAdaptive, bFolder), nil, description)
 
 	centre = container.NewStack()
 
@@ -62,13 +65,14 @@ func gui() *fyne.Container {
 	progress.Hide()
 	r := canvas.NewRectangle(color.Transparent)
 	r.SetMinSize(fyne.NewSize(200, 10))
-	bottom := container.NewBorder(nil, nil, nil, container.NewStack(r, infiniteProgress, progress), status)
+	bottom = container.NewBorder(nil, nil, nil, container.NewStack(r, infiniteProgress, progress), status)
 
 	listbox = container.NewStack()
-	zoombox=container.NewStack()
-	leftside=container.NewBorder(nil, zoombox, nil, nil, listbox)
-	b = container.NewBorder(top, bottom, leftside, nil, centre)
-	return b
+	zoombox = container.NewStack()
+	leftside = container.NewBorder(nil, zoombox, nil, nil, listbox)
+	rightside = container.NewStack()
+	mainlayout = container.NewBorder(top, bottom, leftside, rightside, centre)
+	return mainlayout
 }
 
 func openImage() {
@@ -86,9 +90,9 @@ func openImage() {
 		uri := uc.URI()
 		status.SetText("Displaying " + uri.Path())
 		infiniteProgress.Start()
-		
-		im,err:=imaging.Open(uri.Path())
-		if err!=nil{
+
+		im, err := imaging.Open(uri.Path())
+		if err != nil {
 			return
 		}
 
@@ -102,7 +106,7 @@ func openImage() {
 		centre.Refresh()
 		infiniteProgress.Stop()
 		status.SetText("")
-		dw:=widget.DetailedImage(400,400)
+		dw := widget.DetailedImage(400, 400)
 		zoombox.RemoveAll()
 		zoombox.Add(dw)
 		zoombox.Refresh()
@@ -115,14 +119,12 @@ func openImage() {
 		lastfolder, err = storage.ListerForURI(fldr)
 		if err != nil {
 			log.Println("No lister for folder", err.Error())
-			lastfolder=nil
+			lastfolder = nil
 		}
 
 	}, fyne.CurrentApp().Driver().AllWindows()[0])
 
 	dlg.SetFilter(storage.NewExtensionFileFilter([]string{".jpg", ".png", ".gif"}))
-	dlg.SetConfirmText("Yeah")
-	dlg.SetDismissText("Nah")
 	dlg.SetLocation(lastfolder)
 	dlg.Show()
 }
@@ -195,9 +197,7 @@ func openFolder() {
 		scanFolder(lu)
 	}, fyne.CurrentApp().Driver().AllWindows()[0])
 	dlg.SetLocation(lastfolder)
-	// dlg.SetConfirmText("Y")
-	// dlg.SetDismissText("N")
-	dlg.Resize(fyne.NewSize(800,800))
+	dlg.Resize(fyne.NewSize(800, 800))
 
 	dlg.Show()
 }
@@ -229,8 +229,7 @@ func scanFolder(folder fyne.ListableURI) {
 	for i, uri := range pictureURIs {
 		go func(w *sync.WaitGroup, u fyne.URI, index int) {
 			defer w.Done()
-			// status.SetText(uri.Path())
-			t, err := th.NewThumbNail(uri, 300)
+			t, err := th.NewThumbNail(uri, thumbsize,int(float32(thumbsize)*.75))
 			if err != nil {
 				return
 			}
@@ -263,30 +262,34 @@ func showThumbnails(thumbs []*th.Thumbnail) {
 			if co, ok := co.(*fyne.Container); ok {
 				// co.RemoveAll()
 				co.RemoveAll()
-				co.Add(r)
+				// co.Add(r)
 				co.Add(thumbs[i])
 			}
 		},
 	)
 	l.OnSelected = pickApicture
-	
-	listbox.RemoveAll()
-	listbox.Add(container.NewBorder(nil,widget.NewSeparator(),nil,nil,l))
-	// listbox.Add(container.NewBorder(r, nil, nil, nil, container.NewScroll(g)))
-	listbox.Refresh()
 
+	listbox.RemoveAll()
+	listbox.Add(container.NewBorder(nil, widget.NewSeparator(), nil, nil, l))
+	listbox.Refresh()
+	l.Select(0)
 }
 
 func pickApicture(id int) {
 	centre.RemoveAll()
+	killMinorWindows()
 
 	uri := pictureURIs[id]
-	// uri := uc.URI()
 	status.SetText("Displaying " + uri.Path())
+	infiniteProgress.Show()
 	infiniteProgress.Start()
-	
-	im,err:=imaging.Open(uri.Path(),imaging.AutoOrientation(true))
-	if err!=nil{
+	defer func() {
+		infiniteProgress.Stop()
+		infiniteProgress.Hide()
+	}()
+
+	im, err := imaging.Open(uri.Path(), imaging.AutoOrientation(true))
+	if err != nil {
 		return
 	}
 
@@ -297,33 +300,43 @@ func pickApicture(id int) {
 	}
 
 	widget.Requestfullscreen.AddListener(binding.NewDataListener(func() {
-		tophidden,_=widget.Requestfullscreen.Get()
-		lefthidden,_=widget.Requestfullscreen.Get()
-		if(tophidden){
+		hider, _ := widget.Requestfullscreen.Get()
+		if hider {
 			top.Hide()
-		}else{top.Show()}
-		if(lefthidden){
 			leftside.Hide()
-		}else{leftside.Show()}
-		b.Refresh()
-		log.Println(tophidden,"selected")
+			bottom.Hide()
+		} else {
+			top.Show()
+			leftside.Show()
+			bottom.Show()
+
+		}
+		mainlayout.Refresh()
 	}))
-	
+
 	centre.Add(widget)
 	centre.Refresh()
 	infiniteProgress.Stop()
 	status.SetText("")
-	b:=widget.Pyramid[0].Bounds()
-	info:=fmt.Sprintf("%s - %v %.3f Mpixel",uri.Name(),b,float64(b.Dx()*b.Dy())/1000000)
+	b := widget.Pyramid[0].Bounds()
+	info := fmt.Sprintf("%s - %v %.3f Mpixel", uri.Name(), b, float64(b.Dx()*b.Dy())/1000000)
 	fyne.CurrentApp().Driver().AllWindows()[0].SetTitle(info)
-	dw:=widget.DetailedImage(400,400)
-	
-	log.Println(dw.MinSize())
+
+	dw := widget.DetailedImage(thumbsize,thumbsize)
+
 	zoombox.RemoveAll()
 	zoombox.Add(dw)
-	// log.Println("Added detail image")
 	zoombox.Refresh()
-	// log.Println("refreshed detail image")
+
+	// win:=fyne.CurrentApp().NewWindow("LOUPE")
+	// win.SetContent(dw)
+	// // s:=dw.Size()
+	// // win.Resize(fyne.NewSize(s.Width*2,s.Height*2))
+	// win.SetFullScreen(true)
+	// sz:=win.Canvas().Size()
+	// win.SetFullScreen(false)
+	// win.Resize(fyne.NewSize(sz.Width/6,sz.Height/6))
+	// win.Show()
 
 	fldr, err := storage.Parent(uri)
 	if err != nil {
@@ -333,11 +346,18 @@ func pickApicture(id int) {
 	lastfolder, err = storage.ListerForURI(fldr)
 	if err != nil {
 		log.Println("No lister for folder", err.Error())
-		lastfolder=nil
+		lastfolder = nil
 	}
 
 	centre.Add(widget)
 	centre.Refresh()
 	infiniteProgress.Stop()
 	status.SetText("Done")
+}
+
+func killMinorWindows() {
+	wins := fyne.CurrentApp().Driver().AllWindows()
+	for i := len(wins) - 1; i > 0; i-- {
+		wins[i].Close()
+	}
 }
