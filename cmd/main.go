@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"log"
 	"os"
 	"sort"
 	"strings"
@@ -19,11 +18,12 @@ import (
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 	"github.com/disintegration/imaging"
-	iw "github.com/hippodribble/fynewidgets/adaptiveimagewidget"
+	"github.com/hippodribble/fynewidgets/listablethumbnail"
 	th "github.com/hippodribble/fynewidgets/listablethumbnail"
+	"github.com/hippodribble/fynewidgets/listablethumbnail/panzoomwidget"
 )
 
-const thumbsize int=400
+const thumbsize int = 400
 
 var status *widget.Label
 var infiniteProgress *widget.ProgressBarInfinite
@@ -41,7 +41,6 @@ func main() {
 	w := ap.NewWindow("Check ImageWidget")
 	w.SetContent(gui())
 	w.Resize(fyne.NewSize(1200, 900))
-
 	w.SetOnClosed(killMinorWindows)
 	w.ShowAndRun()
 }
@@ -96,11 +95,35 @@ func openImage() {
 			return
 		}
 
-		widget, err := iw.NewImageWidget(&im, 200)
+		widget, err := panzoomwidget.NewPanZoomWidget(&im, 200, 7)
 		if err != nil {
 			status.SetText("Error creating widget: " + err.Error())
 			return
 		}
+		ch := widget.GetMessageChannel()
+		go func() {
+			for {
+				select {
+				case t := <-ch:
+					status.SetText(t)
+				}
+			}
+		}()
+
+		widget.Requestfullscreen.AddListener(binding.NewDataListener(func() {
+			hider, _ := widget.Requestfullscreen.Get()
+			if hider {
+				top.Hide()
+				leftside.Hide()
+				bottom.Hide()
+			} else {
+				top.Show()
+				leftside.Show()
+				bottom.Show()
+
+			}
+			mainlayout.Refresh()
+		}))
 
 		centre.Add(widget)
 		centre.Refresh()
@@ -109,6 +132,12 @@ func openImage() {
 		dw := widget.DetailedImage(400, 400)
 		zoombox.RemoveAll()
 		zoombox.Add(dw)
+		listbox.RemoveAll()
+		thumbnail, err := listablethumbnail.NewThumbNail(uri, thumbsize, thumbsize)
+		if err == nil {
+			listbox.Add(container.NewBorder(thumbnail,nil,nil,nil,nil))
+		}
+		listbox.Refresh()
 		zoombox.Refresh()
 
 		fldr, err := storage.Parent(uri)
@@ -118,7 +147,6 @@ func openImage() {
 
 		lastfolder, err = storage.ListerForURI(fldr)
 		if err != nil {
-			log.Println("No lister for folder", err.Error())
 			lastfolder = nil
 		}
 
@@ -229,7 +257,7 @@ func scanFolder(folder fyne.ListableURI) {
 	for i, uri := range pictureURIs {
 		go func(w *sync.WaitGroup, u fyne.URI, index int) {
 			defer w.Done()
-			t, err := th.NewThumbNail(uri, thumbsize,int(float32(thumbsize)*.75))
+			t, err := th.NewThumbNail(uri, thumbsize, int(float32(thumbsize)*.75))
 			if err != nil {
 				return
 			}
@@ -293,11 +321,21 @@ func pickApicture(id int) {
 		return
 	}
 
-	widget, err := iw.NewImageWidget(&im, 200)
+	// widget, err := iw.NewImageWidget(&im, 200)
+	widget, err := panzoomwidget.NewPanZoomWidget(&im, 200, 7)
 	if err != nil {
 		status.SetText("Error creating widget: " + err.Error())
 		return
 	}
+	ch := widget.GetMessageChannel()
+	go func() {
+		for {
+			select {
+			case t := <-ch:
+				status.SetText(t)
+			}
+		}
+	}()
 
 	widget.Requestfullscreen.AddListener(binding.NewDataListener(func() {
 		hider, _ := widget.Requestfullscreen.Get()
@@ -309,7 +347,6 @@ func pickApicture(id int) {
 			top.Show()
 			leftside.Show()
 			bottom.Show()
-
 		}
 		mainlayout.Refresh()
 	}))
@@ -322,21 +359,11 @@ func pickApicture(id int) {
 	info := fmt.Sprintf("%s - %v %.3f Mpixel", uri.Name(), b, float64(b.Dx()*b.Dy())/1000000)
 	fyne.CurrentApp().Driver().AllWindows()[0].SetTitle(info)
 
-	dw := widget.DetailedImage(thumbsize,thumbsize)
+	dw := widget.DetailedImage(thumbsize, thumbsize)
 
 	zoombox.RemoveAll()
 	zoombox.Add(dw)
 	zoombox.Refresh()
-
-	// win:=fyne.CurrentApp().NewWindow("LOUPE")
-	// win.SetContent(dw)
-	// // s:=dw.Size()
-	// // win.Resize(fyne.NewSize(s.Width*2,s.Height*2))
-	// win.SetFullScreen(true)
-	// sz:=win.Canvas().Size()
-	// win.SetFullScreen(false)
-	// win.Resize(fyne.NewSize(sz.Width/6,sz.Height/6))
-	// win.Show()
 
 	fldr, err := storage.Parent(uri)
 	if err != nil {
@@ -345,7 +372,6 @@ func pickApicture(id int) {
 
 	lastfolder, err = storage.ListerForURI(fldr)
 	if err != nil {
-		log.Println("No lister for folder", err.Error())
 		lastfolder = nil
 	}
 

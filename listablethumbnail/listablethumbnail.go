@@ -32,6 +32,7 @@ func NewThumbNail(uri fyne.URI, w, h int) (*Thumbnail, error) {
 	}
 	// t.Image=imaging.Thumbnail(im,w,h,imaging.Gaussian)
 	t.Image = imaging.Fit(im, w, h, imaging.Gaussian)
+	
 
 	t.Caption = uri.Name()
 	t.label = widget.NewLabel(t.Caption)

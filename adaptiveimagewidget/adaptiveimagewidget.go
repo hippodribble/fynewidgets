@@ -2,6 +2,7 @@ package adaptiveimagewidget
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"image/draw"
 
@@ -12,6 +13,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 	"github.com/disintegration/imaging"
+	"github.com/hippodribble/fynewidgets"
 	"github.com/hippodribble/fynewidgets/imagedetailwidget"
 )
 
@@ -35,6 +37,8 @@ type AdaptiveImageWidget struct {
 	currentlayer      int
 	detailedImage     *image.NRGBA
 	dragging          bool
+	messages          chan string
+	desktop.Cursorable
 }
 
 // creates a new ImageWidget
@@ -52,7 +56,7 @@ func NewImageWidget(img *image.Image, minsize int) (*AdaptiveImageWidget, error)
 	} else {
 		nrgba = imaging.Clone(a)
 	}
-	pyr, err := makePyramid(nrgba, minsize)
+	pyr, err := fynewidgets.MakePyramid(nrgba, minsize)
 	if err != nil {
 		return nil, errors.Join(err)
 	}
@@ -67,8 +71,13 @@ func NewImageWidget(img *image.Image, minsize int) (*AdaptiveImageWidget, error)
 	}
 	w.Requestfullscreen = binding.NewBool()
 	w.Requestfullscreen.Set(false)
+	w.messages=make(chan string)
 	w.ExtendBaseWidget(w)
 	return w, nil
+}
+
+func (m *AdaptiveImageWidget) GetMessageChannel() chan string {
+	return m.messages
 }
 
 func (m *AdaptiveImageWidget) Resize(size fyne.Size) {
@@ -131,28 +140,6 @@ func (m *AdaptiveImageWidget) updateResolution() {
 	m.Refresh()
 }
 
-// makes the Gaussian pyramid of images - it uses github.com/disintegration/imaging for resizing
-func makePyramid(img *image.NRGBA, minsize int) ([]*image.NRGBA, error) {
-	h := (*img).Bounds().Dx()
-	if (*img).Bounds().Dy() < h {
-		h = (*img).Bounds().Dy()
-	}
-	if h < minsize {
-		return nil, errors.New("image is already smaller than the required minimum")
-	}
-
-	var pyramid []*image.NRGBA = []*image.NRGBA{img}
-
-	for h > minsize {
-		lastlayer := pyramid[len(pyramid)-1]
-		b := (*lastlayer).Bounds()
-		newlayer := imaging.Resize(lastlayer, b.Dx()/2, b.Dy()/2, imaging.Gaussian)
-		pyramid = append(pyramid, newlayer)
-		h /= 2
-	}
-	return pyramid, nil
-}
-
 func (m *AdaptiveImageWidget) DetailedImage(w, h int) *imagedetailwidget.ImageDetailWidget {
 	if m.detailedImage == nil {
 		m.detailedImage = image.NewNRGBA(image.Rect(0, 0, w, h))
@@ -202,18 +189,14 @@ func (m *AdaptiveImageWidget) MouseMoved(e *desktop.MouseEvent) {
 	index := 1 << m.currentlayer
 	X *= float32(index)
 	Y *= float32(index)
-
-	// if X >= 0 && X < float32(m.Pyramid[0].Bounds().Dx()) && Y >= 0 && Y < float32(m.Pyramid[0].Bounds().Dy()) {
-	// 	log.Printf("%d,%d  detail rectangle %v\n", int(X), int(Y), m.detailedImage.Rect)
-	// }
-
-	// m.detailedImage = image.NewNRGBA(image.Rect(0, 0, 2*hw, 2*hh))
-	// draw.Draw(m.detailedImage,m.detailedImage.Rect,image.NewUniform(color.Transparent),image.Pt(0,0),draw.Src)
+	m.messages<-fmt.Sprintf("%.1f, %.1f",X,Y)
 	draw.Draw(m.detailedImage, m.detailedImage.Rect, m.Pyramid[0], image.Pt(int(X), int(Y)).Sub(image.Pt(hw, hh)), draw.Src)
-	
 	m.Zoom.Refresh()
-
 }
 
 // to satisfy the interface
 func (m *AdaptiveImageWidget) MouseOut() {}
+
+func (m *AdaptiveImageWidget) Cursor() desktop.Cursor {
+	return &fynewidgets.BoxCursor{}
+}

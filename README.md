@@ -1,8 +1,26 @@
 # Some Widgets
 
-## Adaptive Image Widget
-
 Because large images can take time to render on a device, especially when the image has more pixels than the display device, it makes sense to display an image with as few pixels as possible.
+
+These widgets approach this by using multiple images of varying resolution.
+
+## PanZoom Widget
+
+This widget contains a Gaussian pyramid of lower-resolution images. For very large images, this allows the user to zoom in and out smoothly and quickly. The pyramid handling is automatic.
+
+The mouse wheel can be used to zoom in and out smoothly, in adjustable increments. Panning is achieved by zooming out at one position, and zooming in at another.
+
+Additionally, the widget provides several useful hooks:
+1. Loupe - a small window at full-resolution that tracks the mouse. ``DetailedImage(width,height int) `` returns a pointer to the image that can be used in an application
+2. Full screen request - so that a UI can be notified to hide other containers, etc, to increase the size of the widget. Left click to activate, Attach to ``Requestfullscreen binding.Bool`` to use it.
+3. Message Channel. This can be used to report infoarmation to an application's status bar, for example. Read the the ``PanZoomWidget.messages chan string`` to get updates.
+
+Below is a screen grab - there is a thumbnail at top left, and a loupe at bottom left. The image itself is over 700 megapixels. At 100% scaling, cracks in the Sun are visible. Zooming with the mouse from very large to very small is smooth.
+
+![Van Gogh](images/PanZoomWidgetScreenshot.png)
+
+
+## Adaptive Image Widget
 
 The AdaptiveImageWidget addresses this by replacing the image.Image in a standard canvas.Image with a Gaussian pyramid of images. This pyramid contains several layers, each at half the resolution of the previous layer, to some defined minimum size.
 
