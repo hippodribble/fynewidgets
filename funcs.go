@@ -1,24 +1,22 @@
 package fynewidgets
 
 import (
-	"errors"
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"math"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/driver/desktop"
 	"github.com/disintegration/imaging"
+	"github.com/pkg/errors"
 )
 
 func MakePyramid(img *image.NRGBA, minsize int) ([]*image.NRGBA, error) {
 	h := (*img).Bounds().Dx()
 	if (*img).Bounds().Dy() < h {
 		h = (*img).Bounds().Dy()
-	}
-	if h < minsize {
-		return nil, errors.New("image is already smaller than the required minimum")
 	}
 
 	var pyramid []*image.NRGBA = []*image.NRGBA{img}
@@ -95,6 +93,7 @@ type PyramidTransform struct {
 	NumLayers    int
 	CurrentLayer int
 	Sensitivity  int // clicks per octave
+	Clicks       int // current number of clicks applied
 }
 
 func (t *PyramidTransform) Rescale(centre fyne.Position, newScale float64) {
@@ -106,7 +105,7 @@ func (t *PyramidTransform) Rescale(centre fyne.Position, newScale float64) {
 	t.DeviceCentre = &centre
 	t.ImageCentre = ip
 	fLevel := math.Log2(newScale)
-	newlevel := -int(math.Floor(fLevel + .5))
+	newlevel := -int(math.Floor(fLevel + .9))
 
 	newlevel = max(newlevel, 0)
 	newlevel = min(newlevel, t.NumLayers-1)
@@ -164,11 +163,130 @@ func (t *PyramidTransform) String() string {
 }
 
 // converts a number of clicks at a given sensitivity (clicks per octave) to a float ratio
-func ClickScaleToFloatScale(clicks, sensitivity int) float32 {
-	return float32(math.Pow(2, float64(clicks)/float64(sensitivity)))
+func TickScaleToFloatScale(ticks, sensitivity int) float32 {
+	return float32(math.Pow(2, float64(ticks)/float64(sensitivity)))
 }
 
 // converts a float ratio to a number of clicks at a given sensitivity (clicks per octave)
-func FloatScaleToClicks(scale float32, sensitivty int) int {
-	return int(math.Log2(float64(scale)) * float64(sensitivty))
+func FloatScaleToTicks(scale float32, sensitivity int) int {
+	m:=1
+	ticks:=int(0.5+math.Log2(float64(scale)) * float64(sensitivity))
+
+	if scale<1{
+		m=-1
+		ticks=int(0.5+math.Log2(float64(1/scale)) * float64(sensitivity))
+	}
+	return ticks*m
+}
+
+func MakeFillerImage(w, h int) image.Image {
+	return MakeUniformColourImage(color.NRGBA{128,128,0,255}, w, h)
+}
+
+func MakeUniformColourImage(c color.Color, w,h int)image.Image {
+	im := image.NewNRGBA(image.Rect(0, 0, w, h))
+	draw.Draw(im, im.Bounds(), image.NewUniform(c), image.Pt(0, 0), draw.Over)
+	return im
+}
+
+func ShortenName(longname string, length int) string {
+
+	N := len(longname)
+
+	if N <= length || length < 10 {
+		// log.Println("RETURN",longname)
+		return longname
+	}
+	ellipsis := ".."
+	a := longname[:length/2] + ellipsis + longname[len(longname)-2-length/2:]
+	// log.Println("RETURN",a,"for",longname)
+	return a
+}
+
+// returns a number of rows and columns that will be as close as possible to square. layouts are bigger horizontally, as are most photos, so no adjustment is made
+func BestRowsColumns(N int) (int, int) {
+	bestRows, bestCols := 1, 1
+	bestRatio := 400.0
+	desiredRatio := 1.0
+	var rows, cols int
+	for rows = 1; rows < N; rows++ {
+		cols = N / rows
+		if cols*rows < N {
+			cols += 1
+		}
+		ratio := math.Abs(float64(rows)/float64(cols) - desiredRatio)
+		if ratio < bestRatio {
+			bestRatio = ratio
+			bestRows, bestCols = rows, cols
+		}
+	}
+	// log.Printf("%d images, %d rows x %d columns, %.2f vs 0.75\n",N, bestRows,bestCols, bestRatio)
+	return bestRows, bestCols
+}
+
+type Datum2D struct {
+	ImageDatum  image.Point
+	DeviceDatum fyne.Position
+	Scale       float32
+}
+
+func (t Datum2D) ToImage(pos *fyne.Position) image.Point {
+	a := pos.Subtract(t.DeviceDatum)
+	b := fyne.Position{}
+	b.X = a.X / float32(t.Scale)
+	b.Y = a.Y / float32(t.Scale)
+	C := b.AddXY(float32(t.ImageDatum.X), float32(t.ImageDatum.Y))
+	return image.Pt(int(C.X), int(C.Y))
+}
+
+func (t Datum2D) ToDevice(pos *fyne.Position) image.Point {
+	a := pos.SubtractXY(float32(t.ImageDatum.X), float32(t.ImageDatum.Y))
+	b := fyne.Position{}
+	b.X = a.X * float32(t.Scale)
+	b.Y = a.Y * float32(t.Scale)
+	C := b.Add(t.DeviceDatum)
+
+	return image.Pt(int(C.X), int(C.Y))
+}
+
+// scale in a transform is DEVICE/IMAGE
+type Transform struct {
+	Datum              *Datum2D // define the datum
+	Ticks, Sensitivity int      // mouse or trackpad tracking & sensitivity
+}
+
+// modifies the Transform's datum to take account of the scale and zoom centre.
+func (t *Transform) Zoom(p fyne.Position, DY float32) {
+	q := t.Datum.ToImage(&p) // a new point in image coordinates
+	if DY > 0 {
+		t.Ticks++
+	}
+	if DY < 0 {
+		t.Ticks--
+	}
+	t.Datum.Scale = TickScaleToFloatScale(t.Ticks, t.Sensitivity)
+	t.Datum.ImageDatum = q
+	t.Datum.DeviceDatum = p
+}
+
+
+func LoadImage(uri fyne.URI) (*image.Image, error) {
+
+	img, err := imaging.Open(uri.Path())
+	if err != nil {
+		return nil, errors.Wrap(err, "LoadImage")
+	}
+
+	return &img, nil
+
+}
+
+func LoadNRGBA(uri fyne.URI) (*image.NRGBA, error) {
+
+	img, err := LoadImage(uri)
+	if err != nil {
+		return nil, errors.Wrap(err, "LoadNRGBA")
+	}
+	return imaging.Clone(*img), nil
+
 }

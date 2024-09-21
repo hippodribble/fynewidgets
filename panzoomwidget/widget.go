@@ -108,16 +108,18 @@ func (p *PanZoomWidget) Scrolled(e *fyne.ScrollEvent) {
 	realsize := p.Pyramid[0].Bounds()
 	wReal := realsize.Dx()
 	hReal := realsize.Dy()
-	dp,_:=p.transform.FromDevice(e.Position)
+	dp, _ := p.transform.FromDevice(e.Position)
 	X := float32(dp.X)
 	Y := float32(dp.Y)
-	X = min(max(X, 0), float32(wReal)) 
+	X = min(max(X, 0), float32(wReal))
 	Y = min(max(Y, 0), float32(hReal))
 	index := 1 << p.transform.CurrentLayer
 	X *= float32(index)
 	Y *= float32(index)
 
-	p.messages <- fmt.Sprintf("%.1f, %.1f scale %.3f", X,Y, p.transform.GlobalScale)
+	if p.messages != nil {
+		p.messages <- fmt.Sprintf("%.1f, %.1f scale %.3f", X, Y, p.transform.GlobalScale)
+	}
 
 	p.Refresh()
 }
@@ -129,8 +131,8 @@ func (p *PanZoomWidget) FitToScreen() {
 	}
 
 	global := min(p.Size().Width/float32(p.Pyramid[0].Bounds().Dx()), p.Size().Height/float32(p.Pyramid[0].Bounds().Dy()))
-	clicks := fynewidgets.FloatScaleToClicks(global, p.transform.Sensitivity)
-	newglobal := float64(fynewidgets.ClickScaleToFloatScale(clicks, p.transform.Sensitivity))
+	clicks := fynewidgets.FloatScaleToTicks(global, p.transform.Sensitivity)
+	newglobal := float64(fynewidgets.TickScaleToFloatScale(clicks, p.transform.Sensitivity))
 
 	lvl, scale, _ := fynewidgets.PyramidScale(float32(newglobal), p.transform.Sensitivity, len(p.Pyramid))
 
@@ -147,8 +149,10 @@ func (p *PanZoomWidget) FitToScreen() {
 
 }
 func (p *PanZoomWidget) Refresh() {
+
 	if p.transform.DeviceCentre == nil {
 		p.FitToScreen()
+		return
 	}
 
 	TL, err := p.transform.FromDevice(fyne.NewPos(0, 0))
@@ -182,10 +186,6 @@ func (p *PanZoomWidget) Resize(size fyne.Size) {
 	p.FitToScreen()
 }
 
-func (p *PanZoomWidget) getScreenCentre() *fyne.Position {
-	return &fyne.Position{X: p.canvasImage.Size().Width, Y: p.canvasImage.Size().Height}
-}
-
 func (p *PanZoomWidget) MouseUp(e *desktop.MouseEvent) {
 	if e.Button == desktop.MouseButtonSecondary {
 		p.FitToScreen()
@@ -210,7 +210,7 @@ func (p *PanZoomWidget) MouseIn(e *desktop.MouseEvent)   {}
 func (p *PanZoomWidget) MouseMoved(e *desktop.MouseEvent) {
 
 	if p.detailedImage == nil {
-		return
+		p.DetailedImage(20, 20)
 	}
 
 	hw := p.detailedImage.Bounds().Dx() / 2
@@ -231,7 +231,9 @@ func (p *PanZoomWidget) MouseMoved(e *desktop.MouseEvent) {
 	index := 1 << p.transform.CurrentLayer
 	X *= float32(index)
 	Y *= float32(index)
-	p.messages <- fmt.Sprintf("%.1f, %.1f scale %.3f", X, Y, p.transform.GlobalScale)
+	if p.messages != nil {
+		p.messages <- fmt.Sprintf("%.1f, %.1f scale %.3f", X, Y, p.transform.GlobalScale)
+	}
 	draw.Draw(p.detailedImage, p.detailedImage.Rect, p.Pyramid[0], image.Pt(int(X), int(Y)).Sub(image.Pt(hw, hh)), draw.Src)
 	p.Zoom.Refresh()
 }
