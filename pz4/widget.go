@@ -44,7 +44,7 @@ func NewPZFromFile(uri fyne.URI, minsize image.Point, info chan interface{}) (*P
 		img, err := fynewidgets.LoadNRGBA(uri) // load image as NRGBA, even if it's something else (especially JPEG)
 		if err != nil {                        // if loading fails, replace the placeholder image with a red one
 			ww.canvas.Image = image.NewUniform(color.NRGBA{255, 0, 0, 255}) // replace the placeholder image with a red one
-			ww.tellApp(errors.Wrap(err, "when loading NRGBA image"))
+			ww.tellApp(errors.Wrap(err, "when loading NRGBA image"))        // report the error
 			return
 		}
 		log.Println("A")
