@@ -169,21 +169,21 @@ func TickScaleToFloatScale(ticks, sensitivity int) float32 {
 
 // converts a float ratio to a number of clicks at a given sensitivity (clicks per octave)
 func FloatScaleToTicks(scale float32, sensitivity int) int {
-	m:=1
-	ticks:=int(0.5+math.Log2(float64(scale)) * float64(sensitivity))
+	m := 1
+	ticks := int(0.5 + math.Log2(float64(scale))*float64(sensitivity))
 
-	if scale<1{
-		m=-1
-		ticks=int(0.5+math.Log2(float64(1/scale)) * float64(sensitivity))
+	if scale < 1 {
+		m = -1
+		ticks = int(0.5 + math.Log2(float64(1/scale))*float64(sensitivity))
 	}
-	return ticks*m
+	return ticks * m
 }
 
 func MakeFillerImage(w, h int) image.Image {
-	return MakeUniformColourImage(color.NRGBA{128,128,0,255}, w, h)
+	return MakeUniformColourImage(color.NRGBA{128, 128, 0, 255}, w, h)
 }
 
-func MakeUniformColourImage(c color.Color, w,h int)image.Image {
+func MakeUniformColourImage(c color.Color, w, h int) image.Image {
 	im := image.NewNRGBA(image.Rect(0, 0, w, h))
 	draw.Draw(im, im.Bounds(), image.NewUniform(c), image.Pt(0, 0), draw.Over)
 	return im
@@ -269,7 +269,6 @@ func (t *Transform) Zoom(p fyne.Position, DY float32) {
 	t.Datum.DeviceDatum = p
 }
 
-
 func LoadImage(uri fyne.URI) (*image.Image, error) {
 
 	img, err := imaging.Open(uri.Path())
@@ -289,4 +288,8 @@ func LoadNRGBA(uri fyne.URI) (*image.NRGBA, error) {
 	}
 	return imaging.Clone(*img), nil
 
+}
+
+func IsImage(uri fyne.URI) bool {
+	return uri.MimeType() == "image/jpeg" || uri.MimeType() == "image/png" || uri.MimeType() == "image/gif"
 }

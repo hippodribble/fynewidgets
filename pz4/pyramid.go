@@ -18,7 +18,6 @@ type Pyramid struct {
 
 func (p Pyramid) String() string {
 	s := fmt.Sprintf("\n\n------------------------\nPyramid\n%d\tLevels:\n", p.Height())
-	// log.Println(s)
 
 	for i := 0; i < p.Height(); i++ {
 		if p.images[i] == nil {
@@ -26,7 +25,6 @@ func (p Pyramid) String() string {
 		} else {
 			w := p.images[i].Bounds().Dx()
 			h := p.images[i].Bounds().Dy()
-			// log.Println(w,h)
 			s += fmt.Sprintf("Level %2d : %4d x %4d", i, w, h)
 			if i==p.level {
 				s+=" (Active)"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"log"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -26,6 +26,7 @@ type PZ4 struct {
 	mousedown           bool             // for detecting drag etc
 	mousedownpoint      fyne.Position    // where the mouse was clicked
 	mousedownimagepoint image.Point      // where the image was clicked
+	pixelcount          int              // pixels on device (mainly for testing)
 }
 
 // Loads an image lazily from a file, returning a component immediately. When the image is loaded and handled, it is inserted into the component. This is necessary, as large compressed images can take a long time to rasterise
@@ -41,21 +42,19 @@ func NewPZFromFile(uri fyne.URI, minsize image.Point, info chan interface{}) (*P
 
 	go func(ww *PZ4) {
 		defer func() { ww.busy = false }()
+		t0:=time.Now()
 		img, err := fynewidgets.LoadNRGBA(uri) // load image as NRGBA, even if it's something else (especially JPEG)
 		if err != nil {                        // if loading fails, replace the placeholder image with a red one
 			ww.canvas.Image = image.NewUniform(color.NRGBA{255, 0, 0, 255}) // replace the placeholder image with a red one
 			ww.tellApp(errors.Wrap(err, "when loading NRGBA image"))        // report the error
 			return
 		}
-		log.Println("A")
 		d, err := NewDatum(img, minsize, 5)
 		if err != nil {
 			ww.canvas.Image = image.NewUniform(color.NRGBA{255, 0, 0, 255}) // replace the placeholder image with a red one
 			ww.tellApp(errors.Wrap(err, "when making datum"))
 			return
 		}
-		log.Println("B")
-		log.Println(d)
 
 		ww.datum = d
 		d.FitDevice(fyne.NewSize(ww.canvas.Size().Width, ww.canvas.Size().Height))
@@ -66,7 +65,7 @@ func NewPZFromFile(uri fyne.URI, minsize image.Point, info chan interface{}) (*P
 			ww.tellApp(errors.Wrap(err, "when getting current image"))
 			return
 		}
-		log.Println("C")
+		fmt.Printf("Loaded image in %v ms\n", time.Since(t0).Milliseconds())
 		ww.tellApp(-2.0)
 		ww.Refresh()
 	}(widget)
@@ -93,14 +92,12 @@ func (p *PZ4) Resize(size fyne.Size) {
 	err := p.datum.FitDevice(p.canvas.Size())
 	p.Refresh()
 	if err != nil {
-		log.Println(errors.Wrap(err, "when fitting image to device"))
 		return
 	}
 }
 
 func (p *PZ4) Refresh() {
 	p.BaseWidget.Refresh()
-	// log.Println("Refresh called")
 	if p.datum == nil {
 		return
 	}
@@ -109,12 +106,13 @@ func (p *PZ4) Refresh() {
 	}
 
 	// img, err := p.datum.GetCurrentImage(p.canvas.Size())
-	img, nPix, err := p.datum.GetCurrentImage(p.canvas.Size())
+	img, pixelscount, err := p.datum.GetCurrentImage(p.canvas.Size())
 	if err != nil {
-		log.Println(errors.Wrap(err, "when getting current image in REFRESH"))
 	}
-	p.tellApp(fmt.Sprintf("Shifted %.2f Mpixel", float64(nPix)/1000000.0))
+	p.pixelcount = pixelscount
 	p.canvas.Image = img
+	p.channel <- fmt.Sprintf("L: %d | Scale: %d%% | %.2f MPix", p.datum.Pyramid.level, int(p.datum.Scale*100), float32(p.pixelcount)/1000000.0)
+
 	p.canvas.Refresh()
 
 }
@@ -128,11 +126,10 @@ func (p *PZ4) MouseMoved(e *desktop.MouseEvent) {
 	}
 	point, err := p.datum.TransformDeviceToFullImage(e.Position)
 	if err != nil {
-		log.Println(errors.Wrap(err, "when transforming device to full image"))
 		return
 	}
 
-	p.channel <- fmt.Sprintf("M: %.1f %.1f | W: %d %d", e.Position.X, e.Position.Y, point.X, point.Y)
+	p.channel <- fmt.Sprintf("L: %d | Scale: %d%% | %.2f MPix | M: %.1f %.1f | W: %d %d", p.datum.Pyramid.level, int(p.datum.Scale*100), float32(p.pixelcount)/1000000.0, e.Position.X, e.Position.Y, point.X, point.Y)
 	if p.mousedown {
 		if p.busy {
 			return
@@ -160,7 +157,6 @@ func (p *PZ4) MouseUp(e *desktop.MouseEvent) {
 
 		err := p.datum.FitDevice(p.canvas.Size())
 		if err != nil {
-			log.Println(errors.Wrap(err, "when fitting device in mouseup"))
 		}
 		p.Refresh()
 	}
@@ -173,7 +169,6 @@ func (p *PZ4) MouseDown(e *desktop.MouseEvent) {
 		p.mousedown = true
 		pt, err := p.datum.TransformDeviceToFullImage(e.Position)
 		if err != nil {
-			log.Println(errors.Wrap(err, "when transforming device to full image"))
 			return
 		}
 		p.mousedownpoint = e.Position
@@ -192,4 +187,40 @@ func (p *PZ4) Scrolled(e *fyne.ScrollEvent) {
 		p.Refresh()
 
 	}(p)
+}
+
+func (p *PZ4) Cursor() desktop.Cursor {
+	return desktop.CrosshairCursor
+}
+
+func (p *PZ4) TypedRune(r rune) {
+	switch r {
+	case '2':
+		if p.busy {
+			return
+		}
+		p.busy = true
+		go func(p *PZ4) {
+			defer func() { p.busy = false }()
+			p.datum.ChangeScale(2.0)
+			p.Refresh()
+
+		}(p)
+
+	case '1':
+		if p.busy {
+			return
+		}
+		p.busy = true
+		go func(p *PZ4) {
+			defer func() { p.busy = false }()
+			p.datum.ChangeScale(0.5)
+			p.Refresh()
+
+		}(p)
+
+	}
+}
+
+func (p *PZ4) TypedKey(event *fyne.KeyEvent) {
 }

@@ -53,7 +53,9 @@ func Openfile() {
 		if err != nil {
 			info <- err.Error()
 			return
-		}
+		}	
+		w.Canvas().SetOnTypedRune(pz4.TypedRune)
+		w.Canvas().SetOnTypedKey(pz4.TypedKey)
 
 		centre.RemoveAll()
 		// centre.Add(canvas.NewImageFromImage(fynewidgets.MakeFillerImage(100, 100)))

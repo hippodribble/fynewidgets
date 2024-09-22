@@ -1,4 +1,4 @@
-package listablethumbnail
+package thumbnail
 
 import (
 	"fmt"
@@ -27,6 +27,7 @@ type Thumbnail struct {
 	downPoint, upPoint fyne.Position
 	selected           binding.Bool
 	commsChannel       chan interface{}
+	clickchannel       chan fyne.URI
 }
 
 // creates a Thumbnail image lazily, ie it returns immediately, but loads the image to the thumbnail in another goroutine
@@ -86,21 +87,17 @@ func (t *Thumbnail) CreateRenderer() fyne.WidgetRenderer {
 	return widget.NewSimpleRenderer(b)
 }
 
-func (t *Thumbnail) Channel() chan interface{}           { return t.commsChannel }
-func (t *Thumbnail) SetChannel(channel chan interface{}) { t.commsChannel = channel }
+func (t *Thumbnail) CommChannel() chan interface{}           { return t.commsChannel }
+func (t *Thumbnail) SetCommChannel(channel chan interface{}) { t.commsChannel = channel }
 
-// func (t *Thumbnail) MouseOut() {}
-//
-//	func (t *Thumbnail) MouseIn(e *desktop.MouseEvent) {
-//		t.commsChannel <- t.Caption + ": " + t.pixels
-//	}
-//
-// func (t *Thumbnail) MouseMoved(e *desktop.MouseEvent) {}
+func (t *Thumbnail) ClickChannel() chan fyne.URI           { return t.ClickChannel() }
+func (t *Thumbnail) SetClickChannel(channel chan fyne.URI) { t.clickchannel = channel }
+
 func (t *Thumbnail) MouseDown(e *desktop.MouseEvent) { t.downPoint = e.Position }
 func (t *Thumbnail) MouseUp(e *desktop.MouseEvent) {
 	t.upPoint = e.Position
-	if t.commsChannel != nil {
-		t.commsChannel <- t.URI
+	if t.clickchannel != nil {
+		t.clickchannel <- t.URI
 	}
 }
 
