@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"log"
 	"math"
 
 	"fyne.io/fyne/v2"
@@ -12,6 +13,7 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/pkg/errors"
 )
+
 
 func MakePyramid(img *image.NRGBA, minsize int) ([]*image.NRGBA, error) {
 	h := (*img).Bounds().Dx()
@@ -59,7 +61,6 @@ func (b *BoxCursor) Image() (image.Image, int, int) {
 			im.Set(i, j, fc)
 		}
 	}
-	// draw.Draw(im,im.Bounds(),image.NewUniform(fc),image.Pt(0,0),draw.Over)
 
 	return im, b.w / 2, b.h / 2
 }
@@ -199,8 +200,40 @@ func ShortenName(longname string, length int) string {
 	}
 	ellipsis := ".."
 	a := longname[:length/2] + ellipsis + longname[len(longname)-2-length/2:]
-	// log.Println("RETURN",a,"for",longname)
 	return a
+}
+
+// return the number of columns to make the best use of a device size
+func OptimiseGrid(objects []fyne.CanvasObject, newsize fyne.Size, spacing float32) (int, int, float32, float32) {
+	if len(objects) < 2 {
+		return 1, 1, 100, 100
+	}
+	size := newsize
+	N := len(objects)
+	var bestuse float32
+	bestcols, bestrows := -1, -1
+	var bestW, bestH float32
+	for ncols := 1; ncols <= N; ncols++ {
+		nrows := N / ncols
+		if nrows*ncols < N {
+			nrows++
+		}
+		W := (size.Width - spacing*float32(ncols+1)) / float32(ncols)
+		H := (size.Height - spacing*float32(nrows+1)) / float32(nrows)
+		W = min(W, objects[0].MinSize().Width)
+		H = min(H, objects[0].MinSize().Height)
+		use := W * H * float32(N) / size.Height / size.Width * 100
+		if use > bestuse {
+			bestuse = use
+			bestrows = nrows
+			bestcols = ncols
+			bestW = W
+			bestH = H
+		}
+	}
+	log.Printf("Usage: %2.2f with %d rows, %d columns   W = %.1f H = %.1f size = (%.1f,%.1f). Sacing is %.1f\n", bestuse, bestrows, bestcols, bestW, bestH, size.Width, size.Height, spacing)
+
+	return bestcols, bestrows, bestW, bestH
 }
 
 // returns a number of rows and columns that will be as close as possible to square. layouts are bigger horizontally, as are most photos, so no adjustment is made
@@ -271,7 +304,7 @@ func (t *Transform) Zoom(p fyne.Position, DY float32) {
 
 func LoadImage(uri fyne.URI) (*image.Image, error) {
 
-	img, err := imaging.Open(uri.Path())
+	img, err := imaging.Open(uri.Path(), imaging.AutoOrientation(true))
 	if err != nil {
 		return nil, errors.Wrap(err, "LoadImage")
 	}
@@ -292,4 +325,9 @@ func LoadNRGBA(uri fyne.URI) (*image.NRGBA, error) {
 
 func IsImage(uri fyne.URI) bool {
 	return uri.MimeType() == "image/jpeg" || uri.MimeType() == "image/png" || uri.MimeType() == "image/gif"
+}
+
+func Screenshot(){
+	im:=fyne.CurrentApp().Driver().AllWindows()[0].Canvas().Capture()
+	imaging.Save(im,"screenshot.png")
 }
