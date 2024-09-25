@@ -15,6 +15,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/hippodribble/fynewidgets"
+	"github.com/pkg/errors"
 )
 
 const MINCOLUMNS int = 1
@@ -142,8 +143,14 @@ func imagefromfile() {
 			statuschannel <- "Cancelled: " + err.Error()
 			return
 		}
+		if uc==nil{return}
 		if fynewidgets.IsImage(uc.URI()) {
-			showImage(uc.URI())
+			err:=showImage(uc.URI())
+			if err!=nil{
+				statuschannel<-errors.Wrap(err,"displaying image").Error()
+			}
+		}else{
+			statuschannel<-fynewidgets.Message{Text:"That's not an image!",Duration: 2}
 		}
 
 	}, fyne.CurrentApp().Driver().AllWindows()[0])
@@ -151,29 +158,26 @@ func imagefromfile() {
 	dlg.Show()
 }
 
-func showImage(uri fyne.URI) {
+func showImage(uri fyne.URI)error {
 
-	log.Println("Load image")
 	if fynewidgets.IsImage(uri) {
-		log.Println("Loading IMAGE")
 		decodedImg, err := fynewidgets.NewPanZoomCanvasFromFile(uri, image.Pt(100, 100), statuschannel)
 		if err != nil {
-			log.Fatalln(err)
+			return errors.Wrap(err,"creating pan zoom canvas")
 		}
 		if decodedImg == nil {
-			log.Println("Failed to decode image")
-			return
+			return errors.Wrap(err,"empty canvas when creating pan zoom canvas")
 		}
 		decodedImg.SetLoupe(details)
 		centre.RemoveAll()
 		centre.Add(decodedImg)
 		centre.Refresh()
 	}
+	return nil
 }
 
 func gridfromselection() {
 
-	log.Println("Open grid")
 	if thumbnailgrid == nil {
 		statuschannel <- "No thumbnails available"
 		return
