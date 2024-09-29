@@ -39,6 +39,8 @@ These are combined, and generally live at the bottom of an application. A channe
 - If a large float is received, the indeterminite or infinite progress bar turns on or off (positive for on, negative for off)
 - If a Message type is received, the text portion is displayed for the duration portion, then cleared.
 
+## Multiphase
+
 ## Loupe Widget ##
 
 This can be used as a magnifying glass when looking at a large image on screen. It shows a small portion of the image at full scale. The size of the loupe is specified in the constructor, but can also be scaled (by 100%, 200% or 300%) to ensure that every pixel can be seen well.

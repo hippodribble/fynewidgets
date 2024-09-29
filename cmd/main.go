@@ -57,7 +57,10 @@ func gui() *fyne.Container {
 }
 
 func makescreenshotbutton() fyne.CanvasObject {
-	return widget.NewButton("Screenshot", fynewidgets.Screenshot)
+	return widget.NewButton("Screenshot", func() {
+		fynewidgets.Screenshot()
+		statuschannel<-"Screen shot saved to current folder as \"screenshot.png\""
+	})
 }
 
 func makeleftbuttons() []fyne.CanvasObject {

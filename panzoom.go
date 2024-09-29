@@ -124,13 +124,15 @@ func (p *PanZoomCanvas) CreateRenderer() fyne.WidgetRenderer {
 	return widget.NewSimpleRenderer(c)
 }
 
+// set this component to use an external loupe to show full detail around the cursor.
 func (p *PanZoomCanvas) SetLoupe(loupe *Loupe) {
 	p.loupe = loupe
 }
 
-func (p *PanZoomCanvas) CurrentImage() (*image.Image, error) {
+// returns the current image portion displayed in the component, at full resolution
+func (p *PanZoomCanvas) CurrentImage() (image.Image, error) {
 	if p.canvas.Image != nil {
-		return &p.canvas.Image, nil
+		return p.canvas.Image, nil
 	}
 	return nil, errors.New("no image exists")
 }
@@ -566,6 +568,7 @@ func (d *Datum) ChangeProjection(p fyne.Position, scalerequested float32) error 
 	return nil
 }
 
+// changes scale in response to a discrete change request (generally a single click of a mouse wheel, etc)
 func (d *Datum) ScaleByTick(p fyne.Position, delta float32) error {
 	dir := 1
 	if delta < 0 {

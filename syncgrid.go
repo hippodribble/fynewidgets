@@ -58,6 +58,8 @@ func (s *SynchronisedImageGrid) Items() ([]fyne.CanvasObject, error) {
 	return s.grid.Objects, nil
 }
 
+// for each item in the grid, returns the portion of the full image that is currently being displayed.
+// Generally, this is useful when extracting a small portion of each of a group of similar images for further processing
 func (s *SynchronisedImageGrid) Images() ([]image.Image, error) {
 	if s.grid == nil {
 		return nil, errors.New("no grid yet")
@@ -72,9 +74,8 @@ func (s *SynchronisedImageGrid) Images() ([]image.Image, error) {
 			if err != nil {
 				continue
 			}
-			images[i] = *im
-		} else {
-		}
+			images[i] = im
+		} 
 	}
 	return images, nil
 }
