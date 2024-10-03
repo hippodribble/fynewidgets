@@ -1,8 +1,15 @@
+
+
+
 # Some Widgets
 
 Because large images can take time to render on a device, especially when the image has more pixels than the display device, it makes sense to display an image with as few pixels as possible.
 
 These widgets approach this by using multiple images of varying resolution.
+
+# Changes
+
+0.7.0 added event bus communication and renamed some widgets - no longer backwards-compatible
 
 ## PanZoomCanvas Widget
 
