@@ -3,8 +3,10 @@ module github.com/hippodribble/fynewidgets
 go 1.22.0
 
 require (
+	fyne.io/cloud v0.0.0-20230911143224-fc981eeacb77
 	fyne.io/fyne/v2 v2.5.1
 	github.com/disintegration/imaging v1.6.2
+	github.com/dtomasi/go-event-bus/v3 v3.0.0
 	github.com/pkg/errors v0.9.1
 )
 

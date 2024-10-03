@@ -36,7 +36,7 @@ func NewLoupe(size image.Point, zoom int) *Loupe {
 	} else {
 		w.zoom = 1
 	}
-	w.canvas.SetMinSize(fyne.NewSize(float32(w.dimensions.X)*float32(w.zoom), float32(w.dimensions.Y)*float32(w.zoom)))
+	w.canvas.SetMinSize(fyne.NewSize(float32(size.X)*float32(w.zoom), float32(size.Y)*float32(w.zoom)))
 	w.label = widget.NewLabel(fmt.Sprintf("Loupe ( %d X )", w.zoom))
 
 	return w

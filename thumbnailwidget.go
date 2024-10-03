@@ -12,6 +12,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 	"github.com/disintegration/imaging"
+	eventbus "github.com/dtomasi/go-event-bus/v3"
 	"github.com/pkg/errors"
 )
 
@@ -26,13 +27,12 @@ type Thumbnail struct {
 	pixels             string
 	downPoint, upPoint fyne.Position
 	selected           binding.Bool
-	commsChannel       chan interface{}
-	clickchannel       chan fyne.URI
+	bus                *eventbus.EventBus
 }
 
 // creates a Thumbnail image lazily, ie it returns immediately, but loads the image to the thumbnail in another goroutine
-func NewThumbNail(uri fyne.URI, w, h int, thresholdMegapixels float64, maxlabellength int) (*Thumbnail, error) {
-	t := Thumbnail{URI: uri}
+func NewThumbNail(uri fyne.URI, w, h int, thresholdMegapixels float64, maxlabellength int, bus *eventbus.EventBus) (*Thumbnail, error) {
+	t := Thumbnail{URI: uri, bus: bus}
 	t.Caption = uri.Name()
 	if len(uri.Name()) > maxlabellength {
 		t.Caption = ShortenName(t.Caption, maxlabellength)
@@ -42,7 +42,8 @@ func NewThumbNail(uri fyne.URI, w, h int, thresholdMegapixels float64, maxlabell
 	t.label.TextStyle.Italic = true
 	// t.label.Truncation = fyne.TextTruncateEllipsis
 	t.canvas = &canvas.Image{}
-	t.canvas.SetMinSize(fyne.NewSize(float32(w), float32(h)))
+	sz:=fyne.NewSize(float32(w), float32(h))
+	t.canvas.SetMinSize(sz)
 	t.canvas.FillMode = canvas.ImageFillContain
 
 	go func(t *Thumbnail) {
@@ -64,6 +65,7 @@ func NewThumbNail(uri fyne.URI, w, h int, thresholdMegapixels float64, maxlabell
 		if px > thresholdMegapixels {
 			t.Image = MakeFillerImage(w, h)
 			t.canvas.Image = t.Image
+			t.canvas.Resize(fyne.NewSize(float32(w), float32(h)))
 			return
 		}
 		r.Close()
@@ -72,9 +74,11 @@ func NewThumbNail(uri fyne.URI, w, h int, thresholdMegapixels float64, maxlabell
 			return
 		}
 
-		t.Image = imaging.Fit(im, w*2, h*2, imaging.Gaussian)
+		t.Image = imaging.Fit(im, w, h, imaging.Gaussian)
 		t.canvas.Image = t.Image
 		t.canvas.FillMode = canvas.ImageFillOriginal
+		t.canvas.SetMinSize(sz)
+		t.canvas.Resize(sz)
 
 	}(&t)
 	t.selected = binding.NewBool()
@@ -87,17 +91,14 @@ func (t *Thumbnail) CreateRenderer() fyne.WidgetRenderer {
 	return widget.NewSimpleRenderer(b)
 }
 
-func (t *Thumbnail) CommChannel() chan interface{}           { return t.commsChannel }
-func (t *Thumbnail) SetCommChannel(channel chan interface{}) { t.commsChannel = channel }
 
-func (t *Thumbnail) ClickChannel() chan fyne.URI           { return t.clickchannel }
-func (t *Thumbnail) SetClickChannel(channel chan fyne.URI) { t.clickchannel = channel }
 
 func (t *Thumbnail) MouseDown(e *desktop.MouseEvent) { t.downPoint = e.Position }
 func (t *Thumbnail) MouseUp(e *desktop.MouseEvent) {
 	t.upPoint = e.Position
-	if t.clickchannel != nil {
-		t.clickchannel <- t.URI
+	if t.bus != nil {
+		t.bus.Publish("image:thumbnail",t.URI)
+		
 	}
 }
 
@@ -116,14 +117,13 @@ func (t *Thumbnail) SetSelected(b bool) {
 // A grid of thumbnail images from a slice of URIs
 type ThumbnailGrid struct {
 	widget.BaseWidget
-	grid             *fyne.Container
-	uris             []fyne.URI
-	Thumbnails       []*Thumbnail
-	allnone          binding.Bool
-	thumbnailchannel chan fyne.URI
+	grid       *fyne.Container
+	uris       []fyne.URI
+	Thumbnails []*Thumbnail
+	allnone    binding.Bool
 }
 
-func NewThumbnailGrid(uris []fyne.URI, w, h int, maxlabellength int, channel chan interface{}, thumbnailchannel chan fyne.URI) (*ThumbnailGrid, error) {
+func NewThumbnailGrid(uris []fyne.URI, w, h int, maxlabellength int, bus *eventbus.EventBus) (*ThumbnailGrid, error) {
 
 	if uris == nil {
 		return nil, errors.New("nil URI list")
@@ -139,19 +139,17 @@ func NewThumbnailGrid(uris []fyne.URI, w, h int, maxlabellength int, channel cha
 		if !IsImage(uri) {
 			continue
 		}
-		t, err := NewThumbNail(uri, w, h, 1000, maxlabellength)
+		t, err := NewThumbNail(uri, w, h, 1000, maxlabellength, bus)
 		if err != nil {
 			continue
 		}
 		g.Thumbnails = append(g.Thumbnails, t)
-		t.SetCommChannel(channel)
-		t.SetClickChannel(thumbnailchannel)
 	}
 
 	ncols := 1
-	if len(g.Thumbnails) > 10 {
-		ncols = 2
-	}
+	// if len(g.Thumbnails) > 10 {
+	// 	ncols = 2
+	// }
 	g.grid = container.NewGridWithColumns(ncols)
 
 	for _, t := range g.Thumbnails {
@@ -162,14 +160,6 @@ func NewThumbnailGrid(uris []fyne.URI, w, h int, maxlabellength int, channel cha
 
 	g.ExtendBaseWidget(g)
 	return g, nil
-}
-
-func (g *ThumbnailGrid) SetThumbnailChannel(channel chan fyne.URI) {
-	g.thumbnailchannel = channel
-}
-
-func (g *ThumbnailGrid) ThumbnailChannel() chan fyne.URI {
-	return g.thumbnailchannel
 }
 
 func (g *ThumbnailGrid) CreateRenderer() fyne.WidgetRenderer {
