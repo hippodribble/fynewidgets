@@ -20,9 +20,7 @@ type SynchronisedImageGrid struct {
 	grid    *fyne.Container
 	columns int
 	holder  *fyne.Container
-	// columnchannel chan int         // requests to change the number of columns in the grid are received on this channel
-	// infochannel   chan interface{} // status updates and progress meter changes are sent from here to the app
-	// datumchannel  chan Datum       // listens to changes in pan and zoom on one widget, and sends it to the others, to keep them synchronised
+
 	bus *eventbus.EventBus
 }
 

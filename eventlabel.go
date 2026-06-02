@@ -20,7 +20,7 @@ func NewEventLabel(bus *eventbus.EventBus) *EventLabel {
 	label.Label.Truncation = fyne.TextTruncateEllipsis
 	lasttime := time.Now()
 
-	ch := bus.Subscribe("text:status")
+	ch := bus.Subscribe("status:show")
 	go func() {
 		for x := range ch {
 			defer func() {
@@ -35,12 +35,10 @@ func NewEventLabel(bus *eventbus.EventBus) *EventLabel {
 			x.Done()
 		}
 	}()
-	// bus.SubscribeCallback("text:status", func(topic string, data interface{}) {
-
-	// })
+	
 	go func() {
-		for range time.NewTicker(3 * time.Second).C {
-			if time.Since(lasttime) > 30*time.Second {
+		for range time.NewTicker(1 * time.Second).C {
+			if time.Since(lasttime) > 2*time.Second {
 				label.SetText("")
 			}
 		}

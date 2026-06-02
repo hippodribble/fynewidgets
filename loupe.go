@@ -21,7 +21,7 @@ type Loupe struct {
 	zoom       int
 }
 
-// uses the highest-reolution image available to show a small area
+// uses the highest-resolution image available to show a small area
 func NewLoupe(size image.Point, zoom int) *Loupe {
 
 	w := new(Loupe)
