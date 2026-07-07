@@ -58,8 +58,6 @@ func NewPermanentNotes(oldnotes []string, bus *eventbus.EventBus) *PermanentNote
 
 }
 
-
-
 func (p *PermanentNotes) CreateRenderer() fyne.WidgetRenderer {
 
 	filter := widget.NewEntry()
