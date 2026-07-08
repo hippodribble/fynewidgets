@@ -7,6 +7,7 @@ require (
 	github.com/disintegration/imaging v1.6.2
 	github.com/dtomasi/go-event-bus/v3 v3.0.0
 	github.com/go-loremipsum/loremipsum v1.1.4
+	github.com/mattn/go-sqlite3 v1.14.47
 	github.com/pkg/errors v0.9.1
 )
 
