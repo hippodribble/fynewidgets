@@ -15,7 +15,6 @@ import (
 
 func main() {
 	ap := app.New()
-	// w := ap.NewWindow("BulletButton")
 	if drv, ok := ap.Driver().(desktop.Driver); ok {
 		splash := drv.CreateSplashWindow()
 		splash.SetContent(gui())
@@ -38,7 +37,7 @@ func gui() fyne.CanvasObject {
 		b.OnClicked = func() { fmt.Println(b.NPresses, "presses") }
 		c.Add(b)
 	}
-	
+
 	for i := range 10 {
 		b := fynewidgets.NewRunningTaskButton(l.Word(), func() { fmt.Println("A Polygon Button") })
 		b.OnClicked = func() { fmt.Println(b.NPresses, "presses"); time.Sleep(time.Millisecond * time.Duration(i*100)) }

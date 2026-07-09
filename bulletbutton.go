@@ -12,13 +12,12 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+// A rounded button which flashes on press, and tracks the total press count
 type BulletButton struct {
 	widget.BaseWidget
 	r                       *canvas.Rectangle
 	l                       *canvas.Text
 	OnClicked               func()
-	done                    bool
-	timer                   *time.Timer
 	busycolor, notbusycolor color.Color
 	nflashes, NPresses      int
 	busy                    bool

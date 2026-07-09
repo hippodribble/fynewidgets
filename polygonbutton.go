@@ -12,15 +12,14 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+// A rounded polygonal button which flashes on press, and tracks the total press count
 type PolygonButton struct {
 	widget.BaseWidget
 	r                       *canvas.Polygon
 	l                       *canvas.Text
 	OnClicked               func()
-	done                    bool
-	timer                   *time.Timer
 	busycolor, notbusycolor color.Color
-	nflashes,NPresses                int
+	nflashes, NPresses      int
 	busy                    bool
 }
 
