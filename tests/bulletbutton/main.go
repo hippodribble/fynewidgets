@@ -21,7 +21,7 @@ func main() {
 		splash.Resize(fyne.NewSize(800, 800))
 		splash.ShowAndRun()
 	}
-}
+} 
 
 func gui() fyne.CanvasObject {
 	l := loremipsum.New()
