@@ -48,7 +48,7 @@ func NewPolygonalButtons(buttons []*widget.Button, diameter, innerdiameter int) 
 			tag = string(buttons[i].Text[:2])
 		}
 		text := canvas.NewText(tag, theme.Color(theme.ColorNameBackground))
-		text.TextSize = 24
+		text.TextSize = float32(diameter)/6
 		text.Alignment = fyne.TextAlignCenter
 		shapes = append(shapes, text)
 	}
