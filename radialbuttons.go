@@ -1,7 +1,6 @@
 package fynewidgets
 
 import (
-	"fmt"
 	"image/color"
 	"math"
 
@@ -36,7 +35,7 @@ func NewRadialButtons(buttons []*widget.Button, diameter float32) *RadialButtons
 		c.StrokeColor = outline
 		c.StrokeWidth = 2
 		radius := (n - float32(i)) / n * diameter
-		fmt.Println(radius, diameter)
+		// fmt.Println(radius, diameter)
 		c.Resize(fyne.NewSize(radius, radius))
 		shapes = append(shapes, c)
 	}
@@ -79,6 +78,12 @@ func (r *RadialButtons) MouseIn(evt *desktop.MouseEvent) {}
 func (r *RadialButtons) MouseMoved(evt *desktop.MouseEvent) {
 	ring := r.getRing(evt)
 	if ring < 0 {
+		for _, shp := range r.shapes {
+			if k, ok := shp.(*canvas.Circle); ok {
+				k.FillColor = r.fill
+			}
+		}
+		r.Refresh()
 		return
 	}
 	if ring >= len(r.buttons) {
@@ -104,7 +109,14 @@ func (r *RadialButtons) MouseMoved(evt *desktop.MouseEvent) {
 	// r.Refresh()
 
 }
-func (r *RadialButtons) MouseOut() {}
+func (r *RadialButtons) MouseOut() {
+	for _, shp := range r.shapes {
+		if k, ok := shp.(*canvas.Circle); ok {
+			k.FillColor = r.fill
+		}
+	}
+	r.Refresh()
+}
 
 func (r *RadialButtons) MouseDown(evt *desktop.MouseEvent) {
 	ring := r.getRing(evt)

@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math"
+	"math/rand/v2"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/hippodribble/fynewidgets"
 )
@@ -49,16 +52,53 @@ func gui() fyne.CanvasObject {
 	for _, text := range []string{"1/hello", "2/world", "3/go", "4/lang", "5/blip", "10/plop"} {
 		tempButtons = append(tempButtons, widget.NewButton(text, func() { ch <- text }))
 	}
-	b2, err := fynewidgets.NewPolygonalButtons(tempButtons, 150,50)
+
+	b2, err := fynewidgets.NewPolygonalButtons(tempButtons, 150, 50)
 	if err != nil {
 		log.Fatalln("Bad Buttons")
 	}
 
-	tempButtons2 := []*widget.Button{}
-	for _, text := range []string{"1/hello", "2/world", "3/go", "4/lang", "5/blip", "10/plop"} {
-		tempButtons2 = append(tempButtons2, widget.NewButton(text, func() { ch <- text }))
+	radialcontainer := container.NewAdaptiveGrid(10)
+	for range 10 {
+		tempButtons2 := []*widget.Button{}
+		for _, text := range []string{"1/hello", "2/world", "3/go", "4/lang", "5/blip", "10/plop"} {
+			tempButtons2 = append(tempButtons2, widget.NewButton(text, func() { ch <- text }))
+		}
+		b7 := fynewidgets.NewRadialButtons(tempButtons2, 100)
+		radialcontainer.Add(b7)
 	}
-	b7 := fynewidgets.NewRadialButtons(tempButtons2, 200)
+
+	iconbuttons := container.NewAdaptiveGrid(15)
+	for range 15 {
+		b8 := fynewidgets.NewIconButton(widget.NewIcon(theme.CalendarIcon()), func() { ch <- "Calendar" })
+		iconbuttons.Add(b8)
+	}
+
+
+	dials := container.NewAdaptiveGrid(10)
+	for range 10 {
+		red := uint8(rand.IntN(128) + 127)
+		green := uint8(rand.IntN(256))
+		blue := uint8(rand.IntN(128) + 127)
+		c := color.RGBA{red, green, blue, 255}
+		f1 := func() {
+			fmt.Println("Left Click")
+		}
+		f2 := func() {
+			fmt.Println("Right Click")
+		}
+		dial := fynewidgets.NewDial(c, .7, -100, 100, f1, f2)
+		dial.SetSize(fyne.NewSize(50, 50))
+		dials.Add(dial)
+		var base float32 = float32(rand.Float32()*2 - 1)
+		go func() {
+			for {
+				fyne.Do(func() { dial.SetValue(float32(100*math.Sin(float64(base)))) })
+				base += .1
+				time.Sleep(time.Millisecond * 50)
+			}
+		}()
+	}
 
 	return container.NewBorder(
 		nil, status,
@@ -72,7 +112,9 @@ func gui() fyne.CanvasObject {
 				b6,
 			),
 			b2,
-			b7,
+			radialcontainer,
+			iconbuttons,
+			dials,
 		),
 	)
 }
