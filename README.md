@@ -46,11 +46,9 @@ These are combined, and generally live at the bottom of an application. A channe
 - If a large float is received, the indeterminite or infinite progress bar turns on or off (positive for on, negative for off)
 - If a Message type is received, the text portion is displayed for the duration portion, then cleared.
 
-## Multiphase
-
 ## Loupe Widget ##
 
-This can be used as a magnifying glass when looking at a large image on screen. It shows a small portion of the image at full scale. The size of the loupe is specified in the constructor, but can also be scaled (by 100%, 200% or 300%) to ensure that every pixel can be seen well.
+A Loupe can be used as a magnifying glass when looking at a large image on screen. It shows a small portion of the image at full scale. The size of the loupe is specified in the constructor, but can also be scaled (by 100%, 200% or 300%) to ensure that every pixel can be seen well.
 
 # Minimal Fyne Implementation
 
@@ -82,3 +80,39 @@ Paradoxically, this is generally quicker than panning or zooming a single large 
 For example, 22 images of 12 megapixels are relatively easy to zoom and pan.
 
 <img src="images/manyimages.png" alt="van Gogh" width="1000" halign="center">
+
+# Button Widgets 
+
+Buttons are useful in UIs - Fyne has a good one already. These ones are made from widget.BaseWidget.
+
+## TaskButton 
+
+This one has a progress bar accessed over a channel, which is useful for long-running functions. Output of the function is also over a channel. This requires a specific function signature, viz a ProgressFunc, so it may not be the answer.
+
+## ProgressFunc ###
+
+Models a long-running function with progress and results over channels. Has a constructor and an Execute() method.
+
+## PolygonButton ###
+
+Treats canvas.Polygon shapes as buttons. The label is truncated to a single character.
+
+## PolygonalButtons
+
+PolygonalButtons are a closely-packed group of buttons laid out in a polygon. Specify labels as "xx/blah blah" - only "xx" will be shown on screen, due to the limited space.
+
+## RunningTaskButton
+
+A RunningTaskButton stays lit as long as the underlying function is active. It is made from a canvas.Rectangle.
+
+## BulletButton
+
+A rounded button. It flashes and tracks total press count.
+
+## SliderLabel
+
+A slider that shows the value while it is being, er, slid. The number value disappears when the, er, sliding, finishes.
+
+## RadialButtons
+
+A set of concentric circles representing functions.

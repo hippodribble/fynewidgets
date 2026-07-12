@@ -53,45 +53,50 @@ func (w *StatusProgressWidget) CreateRenderer() fyne.WidgetRenderer {
 }
 
 func (w *StatusProgressWidget) listen() {
-	for {
-		select {
-		case payload := <-w.commschannel:
-			if p, ok := payload.(Message); ok {
-				w.status.SetText(p.Text)
-				w.lastmessagetime = time.Now().Add(time.Duration(p.Duration) * time.Second)
-				continue
-			}
-			if p, ok := payload.(string); ok {
-				w.status.SetText(p)
-				continue
-			}
-			if p, ok := payload.(float64); ok {
-				if p > 0 && p <= 1 {
+
+	for payload := range w.commschannel {
+		if p, ok := payload.(Message); ok {
+			w.status.SetText(p.Text)
+			w.lastmessagetime = time.Now().Add(time.Duration(p.Duration) * time.Second)
+			continue
+		}
+		if p, ok := payload.(string); ok {
+			fyne.Do(func() { w.status.SetText(p) })
+			continue
+		}
+		if p, ok := payload.(float64); ok {
+			if p > 0 && p <= 1 {
+				fyne.Do(func() {
 					w.progressbar.Show()
 					w.progressbar.SetValue(p)
-				}
-				if p == 0 {
+				})
+			}
+			if p == 0 {
+				fyne.Do(func() {
 					w.progressbar.Hide()
 					w.progressbar.SetValue(p)
-				}
-				if p < 0 && p >= -1 {
+				})
+			}
+			if p < 0 && p >= -1 {
+				fyne.Do(func() {
 					w.progressbar.Show()
 					w.progressbar.SetValue(w.progressbar.Value - p)
-				}
-				if p > 1 {
-					w.infiniteprogressbar.Show()
-					w.infiniteprogressbar.Start()
-				}
-				if p < -1 {
-					w.infiniteprogressbar.Stop()
-					w.infiniteprogressbar.Hide()
-				}
-				continue
+				})
 			}
-
-			w.status.SetText(fmt.Sprintf("%v", payload))
+			if p > 1 {
+				fyne.Do(func() { w.infiniteprogressbar.Show() })
+				w.infiniteprogressbar.Start()
+			}
+			if p < -1 {
+				w.infiniteprogressbar.Stop()
+				fyne.Do(func() { w.infiniteprogressbar.Hide() })
+			}
+			continue
 		}
+
+		fyne.Do(func() { w.status.SetText(fmt.Sprintf("%v", payload)) })
 	}
+
 }
 
 func (w *StatusProgressWidget) processMessages() {
@@ -99,7 +104,7 @@ func (w *StatusProgressWidget) processMessages() {
 		for {
 			time.Sleep(time.Millisecond * 300)
 			if time.Now().After(w.lastmessagetime) {
-				w.status.SetText("Ready...")
+				fyne.Do(func() { w.status.SetText("Ready...") })
 				w.lastmessagetime = time.Now().Add(time.Duration(60) * time.Second)
 			}
 		}

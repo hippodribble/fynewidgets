@@ -26,6 +26,7 @@ type PolygonButton struct {
 func NewPolygonButton(text string, nFlashes, nSides int, onClicked func(), c color.Color) *PolygonButton {
 	r := canvas.NewPolygon(uint(nSides), c)
 	r.CornerRadius = 5
+	r.SetMinSize(fyne.NewSize(50,50))
 	l := canvas.NewText(string(text[0]), theme.Color(theme.ColorNameForeground))
 	l.Alignment = fyne.TextAlignCenter
 	l.TextStyle.Bold = true
@@ -82,5 +83,5 @@ func (p *PolygonButton) MouseUp(e *desktop.MouseEvent) {
 }
 
 func (p *PolygonButton) MinSize() fyne.Size {
-	return fyne.NewSize(50, 50)
+	return fyne.NewSize(20,20)
 }

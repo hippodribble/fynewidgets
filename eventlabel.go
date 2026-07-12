@@ -30,7 +30,7 @@ func NewEventLabel(bus *eventbus.EventBus) *EventLabel {
 				}
 			}()
 			if s, ok := x.Data.(string); ok {
-				label.SetText(s)
+				fyne.Do(func() {label.SetText(s)})
 			}
 			x.Done()
 		}
@@ -39,7 +39,7 @@ func NewEventLabel(bus *eventbus.EventBus) *EventLabel {
 	go func() {
 		for range time.NewTicker(1 * time.Second).C {
 			if time.Since(lasttime) > 2*time.Second {
-				label.SetText("")
+				fyne.Do(func() {label.SetText("")})
 			}
 		}
 	}()

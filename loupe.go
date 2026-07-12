@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+// A Loupe is a magnified image connected to mouse motion over a source image
 type Loupe struct {
 	widget.BaseWidget
 	image      *image.NRGBA
@@ -21,7 +22,7 @@ type Loupe struct {
 	zoom       int
 }
 
-// uses the highest-resolution image available to show a small area
+// uses the highest-resolution image available to show a small area of the image.
 func NewLoupe(size image.Point, zoom int) *Loupe {
 
 	w := new(Loupe)
