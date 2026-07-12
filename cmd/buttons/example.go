@@ -49,7 +49,7 @@ func gui() fyne.CanvasObject {
 	for _, text := range []string{"1/hello", "2/world", "3/go", "4/lang", "5/blip", "10/plop"} {
 		tempButtons = append(tempButtons, widget.NewButton(text, func() { ch <- text }))
 	}
-	b2, err := fynewidgets.NewPolygonalButtons(tempButtons, 150, 50)
+	b2, err := fynewidgets.NewPolygonalButtons(tempButtons, 150,50)
 	if err != nil {
 		log.Fatalln("Bad Buttons")
 	}

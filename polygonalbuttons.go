@@ -48,7 +48,7 @@ func NewPolygonalButtons(buttons []*widget.Button, diameter, innerdiameter int) 
 			tag = string(buttons[i].Text[:2])
 		}
 		text := canvas.NewText(tag, theme.Color(theme.ColorNameBackground))
-		text.TextSize = float32(diameter)/6
+		text.TextSize = float32(diameter) / 6
 		text.Alignment = fyne.TextAlignCenter
 		shapes = append(shapes, text)
 	}
@@ -90,8 +90,8 @@ func (p PolyLayout) Layout(objects []fyne.CanvasObject, sz fyne.Size) {
 		}
 		if q, ok := o.(*canvas.Text); ok {
 			angle := float64(nlabels)/float64(len(p.buttons.buttons))*math.Pi*2 - math.Pi/2
-			dx := float64(r+18) / 1.66 * math.Cos(angle)
-			dy := float64(r+18)/1.66*math.Sin(angle) - 18
+			dx := float64(r+p.buttons.diameter/8) * 0.5 * math.Cos(angle)
+			dy := float64(r+p.buttons.diameter/8)*0.5*math.Sin(angle) - float64(q.TextSize*.75)
 			q.Move(fyne.NewPos(cx, cy).AddXY(float32(dx), float32(dy)))
 			nlabels++
 		}
