@@ -26,16 +26,16 @@ func NewDial(c color.Color, cutout float32, min, max float32, fLeft, fRight func
 	d := canvas.NewDoughnutArc(-135, 135, c)
 	d.CutoutRatio = cutout
 	label := canvas.NewText("", theme.Color(theme.ColorNameForeground))
-	label.TextStyle.Bold=true
-	label.Alignment=fyne.TextAlignCenter
+	label.TextStyle.Bold = true
+	label.Alignment = fyne.TextAlignCenter
 	donut := &Dial{donut: d, leftClick: fLeft, rightClick: fRight, min: min, max: max, minsize: fyne.NewSize(25, 25), display: label}
-	label.TextSize=donut.minsize.Width/3
+	label.TextSize = donut.minsize.Width / 3
 	donut.ExtendBaseWidget(donut)
 	return donut
 }
 
 func (d *Dial) CreateRenderer() fyne.WidgetRenderer {
-	return widget.NewSimpleRenderer(container.NewStack(d.donut,d.display))
+	return widget.NewSimpleRenderer(container.NewStack(d.donut, d.display))
 }
 
 func (d *Dial) MinSize() fyne.Size {
@@ -44,7 +44,7 @@ func (d *Dial) MinSize() fyne.Size {
 
 func (d *Dial) SetSize(sz fyne.Size) {
 	d.minsize = sz
-	d.display.TextSize=d.minsize.Width/3
+	d.display.TextSize = d.minsize.Width / 3
 	d.Refresh()
 }
 
@@ -65,16 +65,21 @@ func (d *Dial) SetValue(v float32) {
 	f := (d.value - d.min) / (d.max - d.min)
 	d.donut.EndAngle = f*270 - 135
 	// fmt.Println(f,d.donut.EndAngle)
-	d.display.Text=fmt.Sprintf("%.1f",v)
+	d.display.Text = fmt.Sprintf("%.1f", v)
 	d.Refresh()
 }
+
+func (d *Dial) SetLeftClick(f func())  { d.leftClick = f }
+func (d *Dial) SetRightClick(f func()) { d.rightClick = f }
+
+func (d *Dial) Value() float32 { return d.value }
 
 func (d *Dial) MouseDown(e *desktop.MouseEvent) {
 	switch e.Button {
 	case desktop.MouseButtonPrimary:
-		d.leftClick()
+		go func() {d.leftClick()}()
 	case desktop.MouseButtonSecondary:
-		d.rightClick()
+		go func() {d.rightClick()}()
 	}
 }
 func (d *Dial) MouseUp(e *desktop.MouseEvent) {}

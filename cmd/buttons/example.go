@@ -88,14 +88,17 @@ func gui() fyne.CanvasObject {
 			fmt.Println("Right Click")
 		}
 		dial := fynewidgets.NewDial(c, .7, -100, 100, f1, f2)
+		dial.SetLeftClick(func() {
+			ch<-fmt.Sprintf("Left clicked at %.1f",dial.Value())
+		})
 		dial.SetSize(fyne.NewSize(50, 50))
 		dials.Add(dial)
-		var base float32 = float32(rand.Float32()*2 - 1)
+		var base float32 = float32(rand.Float32()*2000 - 1)
 		go func() {
 			for {
 				fyne.Do(func() { dial.SetValue(float32(100*math.Sin(float64(base)))) })
-				base += .1
-				time.Sleep(time.Millisecond * 50)
+				base += .02
+				time.Sleep(time.Millisecond * 100)
 			}
 		}()
 	}

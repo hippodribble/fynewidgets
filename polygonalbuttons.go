@@ -128,11 +128,13 @@ func (p *PolygonalButtons) MouseDown(e *desktop.MouseEvent) {
 
 		nSectors := len(p.buttons)
 		indexOfLabel := sector + 1 + nSectors
+		storesize := p.shapes[indexOfLabel].(*canvas.Text).TextSize
 
 		for range 2 {
 			fyne.DoAndWait(func() {
 				p.shapes[indexOfLabel].(*canvas.Text).Color = color.RGBA{0, 0, 128, 255}
 				p.shapes[indexOfLabel].(*canvas.Text).TextStyle.Bold = true
+				p.shapes[indexOfLabel].(*canvas.Text).TextSize = storesize * 1.25
 				p.shapes[indexOfLabel].Refresh()
 			})
 
@@ -141,6 +143,7 @@ func (p *PolygonalButtons) MouseDown(e *desktop.MouseEvent) {
 			fyne.DoAndWait(func() {
 				p.shapes[indexOfLabel].(*canvas.Text).Color = theme.Color(theme.ColorNameBackground)
 				p.shapes[indexOfLabel].(*canvas.Text).TextStyle.Bold = false
+				p.shapes[indexOfLabel].(*canvas.Text).TextSize = storesize
 				p.shapes[sector+nSectors+1].Refresh()
 			})
 
@@ -161,10 +164,12 @@ func (p *PolygonalButtons) getSector(e *desktop.MouseEvent) int {
 	cx, cy := p.Size().Width/2, p.Size().Height/2
 	x, y := e.Position.X, e.Position.Y
 	dx, dy := x-cx, y-cy
+	
 	r := math.Sqrt(float64(dx*dx + dy*dy))
 	if r > float64(p.diameter/2) {
 		return -1
 	}
+	
 	f := r / float64(p.diameter)
 	if f < .2 {
 		return -1
