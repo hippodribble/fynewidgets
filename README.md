@@ -116,3 +116,8 @@ A slider that shows the value while it is being, er, slid. The number value disa
 ## RadialButtons
 
 A set of concentric circles representing functions.
+
+## Dial
+
+A dial gauge with min, max and value. It supports a custom func() on both left and right click and shows the value as text in the centre. The thickness of the dial line can be set, along with the colour.
+

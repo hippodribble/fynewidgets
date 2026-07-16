@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"math/rand/v2"
+	"net/netip"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -14,6 +15,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/hippodribble/fynewidgets"
+	"github.com/hippodribble/fynewidgets/network"
 )
 
 var ch = make(chan interface{})
@@ -74,7 +76,6 @@ func gui() fyne.CanvasObject {
 		iconbuttons.Add(b8)
 	}
 
-
 	dials := container.NewAdaptiveGrid(10)
 	for range 10 {
 		red := uint8(rand.IntN(128) + 127)
@@ -89,19 +90,31 @@ func gui() fyne.CanvasObject {
 		}
 		dial := fynewidgets.NewDial(c, .7, -100, 100, f1, f2)
 		dial.SetLeftClick(func() {
-			ch<-fmt.Sprintf("Left clicked at %.1f",dial.Value())
+			ch <- fmt.Sprintf("Left clicked at %.1f", dial.Value())
 		})
 		dial.SetSize(fyne.NewSize(50, 50))
 		dials.Add(dial)
 		var base float32 = float32(rand.Float32()*2000 - 1)
 		go func() {
 			for {
-				fyne.Do(func() { dial.SetValue(float32(100*math.Sin(float64(base)))) })
+				fyne.Do(func() { dial.SetValue(float32(100 * math.Sin(float64(base)))) })
 				base += .02
 				time.Sleep(time.Millisecond * 100)
 			}
 		}()
 	}
+	// clock:=fynewidgets.NewClock()
+
+	// dkblue := color.RGBA{128, 128, 255, 255}
+	// ltblue := color.RGBA{192, 192, 255, 255}
+	// gp, err := fynewidgets.NewGraphPaper(50, 10, 401, 401, dkblue, ltblue, color.White)
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+
+	add := netip.MustParseAddrPort("127.0.0.1:8080")
+	node := network.NewTCPEndPoint(add)
+	nv:=network.NewNodeView(&node,color.RGBA{255,255,0,255})
 
 	return container.NewBorder(
 		nil, status,
@@ -118,6 +131,9 @@ func gui() fyne.CanvasObject {
 			radialcontainer,
 			iconbuttons,
 			dials,
+			nv,
+			// clock,
+			// gp,
 		),
 	)
 }

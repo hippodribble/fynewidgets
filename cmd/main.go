@@ -157,7 +157,7 @@ func imagefromfile() {
 		}
 
 	}, fyne.CurrentApp().Driver().AllWindows()[0])
-	dlg.SetFilter(storage.NewExtensionFileFilter([]string{".jpg", ".png", ".gif"}))
+	dlg.SetFilter(storage.NewExtensionFileFilter([]string{".jpg",".jpeg", ".png", ".gif"}))
 	dlg.Show()
 }
 
