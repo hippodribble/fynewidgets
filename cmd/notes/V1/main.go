@@ -149,6 +149,9 @@ func handleKeys(k *fyne.KeyEvent) {
 }
 
 func SortByProject(obs []fyne.CanvasObject) {
+
+	sz := w.Canvas().Size()
+
 	projects := make(map[string][]fyne.CanvasObject)
 	for i := range obs {
 		if v, ok := obs[i].(*notes.NoteView); ok {
@@ -166,8 +169,6 @@ func SortByProject(obs []fyne.CanvasObject) {
 	}
 	slices.Sort(keys)
 
-	sz := w.Canvas().Size()
-
 	maxn := 0
 	for _, v := range projects {
 		maxn = max(maxn, len(v))
@@ -179,10 +180,7 @@ func SortByProject(obs []fyne.CanvasObject) {
 	var col float32
 	for _, k := range keys {
 		v := projects[k]
-		// height depends on count of items in project.
-		// spacing is fixed at 50
 		var dy float32 = 100.0
-		// fmt.Println(k, len(v))
 		H := (sz.Height - 10) - float32(len(v)-1)*dy
 		x := col * W
 		nsz := fyne.NewSize(W-pad, H-pad)
