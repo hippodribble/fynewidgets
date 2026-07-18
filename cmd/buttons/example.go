@@ -16,6 +16,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/hippodribble/fynewidgets"
 	"github.com/hippodribble/fynewidgets/network"
+	"github.com/hippodribble/fynewidgets/sparkline"
 )
 
 var ch = make(chan interface{})
@@ -114,7 +115,41 @@ func gui() fyne.CanvasObject {
 
 	add := netip.MustParseAddrPort("127.0.0.1:8080")
 	node := network.NewTCPEndPoint(add)
-	nv:=network.NewNodeView(&node,color.RGBA{255,255,0,255})
+	nv := network.NewNodeView(&node, color.RGBA{255, 255, 0, 255})
+	clock := fynewidgets.NewClock()
+	redclock := fynewidgets.NewClockRed(150)
+	dc := fynewidgets.NewDialInfinite(60, 15, 150, 0.6, 0.8, color.Gray{64}, color.Gray{192}, 360, "Compass")
+	roundrow := container.NewAdaptiveGrid(3, clock, redclock, dc)
+
+	go func() {
+		dcChan := make(chan fynewidgets.CircularData)
+		dc.SetChannel(dcChan)
+		x := 0.0
+		for {
+			time.Sleep(time.Millisecond * 20)
+			t := fmt.Sprintf("%.1f", x)
+			dcChan <- fynewidgets.CircularData{Value: x + rand.NormFloat64(), Text: t}
+			x += 0.1
+		}
+	}()
+	N := 100
+	x := 0.0
+	sp1 := sparkline.NewSparkBar(100, 100, N, color.RGBA{255, 128, 0, 255})
+	for range N/2 {
+		sp1.AddPoint(sparkline.XY{X: x, Y: rand.Float64() * 10})
+		x += 1.9
+	}
+	go func() {
+		for {
+			time.Sleep(time.Millisecond * 100)
+			fyne.Do(func() {
+				sp1.AddPoint(sparkline.XY{X: x, Y: rand.Float64() * 10})
+			})
+			x += 1.9
+		}
+	}()
+
+	sprow := container.NewAdaptiveGrid(10, sp1)
 
 	return container.NewBorder(
 		nil, status,
@@ -132,6 +167,8 @@ func gui() fyne.CanvasObject {
 			iconbuttons,
 			dials,
 			nv,
+			roundrow,
+			sprow,
 			// clock,
 			// gp,
 		),

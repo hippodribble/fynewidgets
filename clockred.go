@@ -1,6 +1,7 @@
 package fynewidgets
 
 import (
+	"fmt"
 	"image/color"
 	"math"
 	"time"
@@ -13,6 +14,13 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+// A dial clock with a spinning seconds register that can also be used as a stopwatch
+//
+//   - By default, it's a clock.
+//   - Left click to start a timer (stopwatch)
+//   - Left click again to stop the timer
+//   - Move the mouse over the timer or clock to pause the display
+//   - Right click to reset the timer and return to clock mode (even if the timer is running)
 type ClockRed struct {
 	widget.BaseWidget
 	chapters             []*canvas.Line
@@ -21,6 +29,8 @@ type ClockRed struct {
 	pinger               *time.Ticker
 	paused               bool
 	size                 float32
+	timerStart           time.Time
+	timerMode            bool
 }
 
 func NewClockRed(size float32) *ClockRed {
@@ -54,14 +64,30 @@ func NewClockRed(size float32) *ClockRed {
 		size:       size,
 	}
 	go func() {
+		var intervalTick int
 		for x := range r.pinger.C {
 			if r.paused {
 				continue
 			}
-			display.Text = x.Format("15:04:05")
-			intervalTick := x.Nanosecond() / nanosecs
+			if r.timerMode {
+				dt := x.Sub(r.timerStart)
+				totalSeconds := int64(dt.Seconds())
+				hours := totalSeconds / 3600
+				minutes := (totalSeconds % 3600) / 60
+				seconds := totalSeconds % 60
+				r.display.Text = fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
+				intervalTick = int(float64(dt.Nanoseconds()%1000000000) / float64(nanosecs))
+			} else {
+				display.Text = x.Format("15:04:05.0")
+				intervalTick = x.Nanosecond() / nanosecs
+
+			}
 			// if intervalTick==0{r.display.Color=highlight}else{r.display.Color=r.litColor}
-			if intervalTick==0{r.display.TextStyle.Bold=false}else{r.display.TextStyle.Bold=true}
+			if intervalTick == 0 {
+				r.display.TextStyle.Bold = false
+			} else {
+				r.display.TextStyle.Bold = true
+			}
 			for i, chapter := range r.chapters {
 				if i == intervalTick {
 					chapter.StrokeColor = highlight
@@ -69,7 +95,7 @@ func NewClockRed(size float32) *ClockRed {
 					chapter.StrokeColor = r.unlitColor
 				}
 			}
-			fyne.Do(func() { r.Refresh() })
+			fyne.Do(r.Refresh)
 		}
 	}()
 
@@ -89,6 +115,21 @@ func (r *ClockRed) CreateRenderer() fyne.WidgetRenderer {
 func (r *ClockRed) MouseIn(e *desktop.MouseEvent)  { r.paused = true }
 func (r *ClockRed) MouseOut()                      { r.paused = false }
 func (r *ClockRed) MouseMoved(*desktop.MouseEvent) {}
+func (r *ClockRed) MouseDown(e *desktop.MouseEvent) {
+	switch e.Button {
+	case desktop.MouseButtonPrimary:
+		r.timerMode = !r.timerMode
+		if r.timerMode {
+			r.timerStart = time.Now()
+			r.paused = false
+		}else{
+			r.paused=true
+		}
+	case desktop.MouseButtonSecondary:
+		r.timerMode = false
+	}
+}
+func (r *ClockRed) MouseUp(*desktop.MouseEvent) {}
 
 type ClockRedLayout struct {
 	r *ClockRed
