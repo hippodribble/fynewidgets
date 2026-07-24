@@ -19,6 +19,9 @@ type GSV struct {
 	record                        string
 	data                          *GSVData
 	textPRN, textSNR, textELEVAZI *canvas.Text
+	r                             *canvas.Rectangle
+	bkground                      color.RGBA
+	amin                          uint8
 }
 
 func NewGSV(ID string) *GSV {
@@ -43,6 +46,11 @@ func NewGSV(ID string) *GSV {
 	textELEVAZI.Alignment = fyne.TextAlignCenter
 	textSNR.Alignment = fyne.TextAlignCenter
 	textPRN.Alignment = fyne.TextAlignCenter
+	R, G, B, _ := theme.Color(theme.ColorNameForeground).RGBA()
+
+	bkground := color.RGBA{uint8(R), uint8(G), uint8(B), 0}
+	// bkground.A=uint8(0)
+	// fmt.Println(bkground)
 
 	d := GSVData{PRN: ID}
 	r := &GSV{
@@ -50,6 +58,9 @@ func NewGSV(ID string) *GSV {
 		textSNR:     textSNR,
 		textELEVAZI: textELEVAZI,
 		data:        &d,
+		r:           canvas.NewRectangle(bkground),
+		bkground:    bkground,
+		amin:        16,
 	}
 	r.ExtendBaseWidget(r)
 	return r
@@ -57,17 +68,17 @@ func NewGSV(ID string) *GSV {
 
 func (g *GSV) CreateRenderer() fyne.WidgetRenderer {
 	spacer := canvas.NewRectangle(color.Transparent)
-	spacer.SetMinSize(fyne.NewSize(5,5))
+	spacer.SetMinSize(fyne.NewSize(5, 5))
 	c := container.NewVBox(
 		spacer,
-		g.textPRN, g.textELEVAZI, g.textSNR,
+		g.textPRN, g.textSNR,
 	)
-	rect := canvas.NewRectangle(color.Gray{32})
-	return widget.NewSimpleRenderer(container.NewStack(rect, c))
+	// rect := canvas.NewRectangle(color.Gray{32})
+	return widget.NewSimpleRenderer(container.NewStack(g.r, c))
 }
 
 func (g *GSV) MinSize() fyne.Size {
-	return fyne.NewSize(80, 60)
+	return fyne.NewSize(40, 40)
 }
 
 func (g *GSV) formatInfo() {
@@ -75,10 +86,21 @@ func (g *GSV) formatInfo() {
 	g.textPRN.Text = g.data.PRN
 	g.textSNR.Text = fmt.Sprintf("%2d", g.data.SNR)
 	g.data.lastupdate = time.Now()
+	if g.data == nil {
+		g.bkground.A = g.amin
+		g.r.FillColor = g.bkground
+	} else {
+		colorfraction := float64(g.data.SNR) / 99.0 * 128.0
+		g.bkground.A = uint8(colorfraction)
+		g.r.FillColor = g.bkground
+
+	}
 }
 
 func (g *GSV) clear() {
 	g.textELEVAZI.Text = ""
 	g.textPRN.Text = ""
 	g.textSNR.Text = ""
+	g.bkground.A = g.amin
+	g.r.FillColor = g.bkground
 }

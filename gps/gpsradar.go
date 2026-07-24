@@ -197,5 +197,5 @@ func (r RadarLayout) Layout(os []fyne.CanvasObject, sz fyne.Size) {
 }
 
 func (r RadarLayout) MinSize(os []fyne.CanvasObject) fyne.Size {
-	return fyne.NewSize(300, 300)
+	return fyne.NewSize(300,300)
 }

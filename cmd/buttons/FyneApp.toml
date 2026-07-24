@@ -1,1 +1,11 @@
-ID="com.github.hippodribble.fynewidgets.testpolygons"
+
+[Details]
+  Icon = "x.png"
+  Name = "Widget Tester"
+  ID = "com.github.hippodribble.fynewidgets.testpolygons"
+  Version = "0.1.0"
+  Build = 14
+
+[Migrations]
+fyneDo = true
+

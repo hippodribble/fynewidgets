@@ -38,7 +38,7 @@ func main() {
 
 func gui() fyne.CanvasObject {
 
-	loupe=fynewidgets.NewLoupe(image.Pt(100,100),2)
+	loupe = fynewidgets.NewLoupe(image.Pt(100, 100), 2)
 	centre = container.NewMultipleWindows()
 	top = container.NewStack()
 	bottom = container.NewStack()
@@ -76,26 +76,25 @@ func fileOpen() {
 
 			s, _ := parentFolderToString(uc)
 			prefs.SetString("lastfolder", s)
-			img:=loadImage(uc.URI().Path())
-			pz, err := fynewidgets.NewPanZoomCanvasFromImage(img, image.Pt(200, 200), bus,uc.URI().Name())
+			img := loadImage(uc.URI().Path())
+			pz, err := fynewidgets.NewPanZoomCanvasFromImage(img, image.Pt(200, 200), bus, uc.URI().Name())
 			if err != nil {
 				return
 			}
 
 			pz.SetLoupe(loupe)
-			
-			
+
 			win := container.NewInnerWindow("File Name", pz)
 			win.OnMaximized = func() { win.Resize(centre.Size()) }
 			win.OnMinimized = func() { win.Resize(fyne.NewSize(250, 250)) }
 			win.Resize(fyne.NewSize(750, 750))
 			centre.Windows = []*container.InnerWindow{win}
 			centre.Refresh()
-		},
-		fyne.CurrentApp().Driver().AllWindows()[0],
+		},w,
 	)
 	dlg.SetLocation(stringToFolderURI(prefs.String("lastfolder")))
-	dlg.Resize(fyne.NewSize(750, 750))
+	// if dlg==nil{return}
+	fyne.Do(func() {dlg.Resize(fyne.NewSize(750, 750))})
 	dlg.Show()
 }
 
@@ -121,10 +120,9 @@ func stringToFolderURI(s string) fyne.ListableURI {
 	return lu
 }
 
-
-func loadImage(path string)*elevationImage.ElevationImage{
-	e,err:=elevationImage.NewElevationImage(path)
-	if err!=nil{
+func loadImage(path string) *elevationImage.ElevationImage {
+	e, err := elevationImage.NewElevationImage(path)
+	if err != nil {
 		fmt.Println(err)
 		return nil
 	}

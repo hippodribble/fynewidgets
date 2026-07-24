@@ -114,7 +114,7 @@ func (m *GPSMonitor) CreateRenderer() fyne.WidgetRenderer {
 	rHistory.StrokeWidth = .5
 	rHistory.StrokeColor = theme.Color(theme.ColorNameForeground)
 
-	array := container.NewAdaptiveGrid(16)
+	array := container.NewAdaptiveGrid(32)
 
 	for i, gsv := range m.gsvs {
 		if i == 0 {
@@ -271,37 +271,7 @@ func (m *GPSMonitor) listen() {
 	}
 }
 
-// func (m *GPSMonitor) DMS(s string) (string, error) {
-// 	if len(s) == 0 {
-// 		return "00°00'00\"", errors.New("no data")
-// 	}
-// 	fields := strings.Split(s, ".")
-// 	if len(fields[0]) == 4 {
-// 		d, err := stringToInt(fields[0][:2])
-// 		if err != nil {
-// 			return "00°00'00\"", err
-// 		}
-// 		m, err := stringToFloat(s[2:])
-// 		if err != nil {
-// 			return "00°00'00\"", err
-// 		}
-// 		s := (m - math.Floor(m)) * 60
-// 		return fmt.Sprintf("%02d°%02d'%02.1f\"", d, int(m), s), nil
-// 	} else if len(fields[0]) == 5 {
-// 		d, err := stringToInt(fields[0][:3])
-// 		if err != nil {
-// 			return "00°00'00\"", err
-// 		}
-// 		m, err := stringToFloat(s[3:])
-// 		if err != nil {
-// 			return "00°00'00\"", err
-// 		}
-// 		s := (m - math.Floor(m)) * 60
-// 		return fmt.Sprintf("%02d°%02d'%02.1f\"", d, int(m), s), nil
-// 	}
-// 	return "00°00'00\"", errors.New("no data")
 
-// }
 
 func (m *GPSMonitor) useUSB() {
 	ports, err := serial.GetPortsList()

@@ -136,20 +136,21 @@ func gui() fyne.CanvasObject {
 	x := 0.0
 	sp1 := sparkline.NewSparkBar(100, 100, N, color.RGBA{255, 128, 0, 255})
 	for range N/2 {
-		sp1.AddPoint(sparkline.XY{X: x, Y: rand.Float64() * 10})
-		x += 1.9
+		sp1.AddPoint(sparkline.XY{X: x, Y: rand.Float64() * 33})
+		x += .1
 	}
 	go func() {
+
 		for {
-			time.Sleep(time.Millisecond * 100)
+			time.Sleep(time.Millisecond * 10)
 			fyne.Do(func() {
-				sp1.AddPoint(sparkline.XY{X: x, Y: rand.Float64() * 10})
+				sp1.AddPoint(sparkline.XY{X: x, Y: math.Sin(x) })
 			})
-			x += 1.9
+			x += .1
 		}
 	}()
 
-	sprow := container.NewAdaptiveGrid(10, sp1)
+	sprow := container.NewAdaptiveGrid(5, widget.NewLabel("Sparklines"),sp1,fynewidgets.NewClockRed(90))
 
 	return container.NewBorder(
 		nil, status,
