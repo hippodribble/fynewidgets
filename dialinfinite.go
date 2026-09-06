@@ -110,8 +110,9 @@ func (d *InfiniteDial) SetChannel(ch chan CircularData) {
 }
 
 func (d *InfiniteDial) SetValue(v float64) {
-	fmt.Println("SetValue")
-	d.value = v
+	// fmt.Println("SetValue")
+	d.value = math.Mod(v,d.maxval)
+	d.text = fmt.Sprintf("%.1f", d.value)
 	d.update()
 }
 
@@ -185,5 +186,5 @@ func (d InfiniteDialLayout) Layout(os []fyne.CanvasObject, sz fyne.Size) {
 
 func (d InfiniteDialLayout) MinSize(os []fyne.CanvasObject) fyne.Size {
 	// fmt.Println("MinSize")
-	return fyne.NewSize(50, 50)
+	return fyne.NewSize(d.d.size,d.d.size)
 }

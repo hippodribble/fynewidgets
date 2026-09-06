@@ -1,0 +1,128 @@
+package graph
+
+import (
+	"image/color"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
+)
+
+// A visible representation of a graph, with nodes and edges
+type Graph struct {
+	widget.BaseWidget
+	Nodes []*GraphNode
+	Edges []*GraphEdge
+}
+
+// A visible representation of a graph node, with a circle and edges
+type GraphNode struct {
+	ID     string
+	circle *canvas.Circle
+	Edges  []*GraphEdge
+}
+
+// A visible representation of a graph edge, with a line drawn between the two nodes
+type GraphEdge struct {
+	line *canvas.Line
+	From *GraphNode
+	To   *GraphNode
+}
+
+func NewGraph() *Graph {
+	g := &Graph{}
+	g.ExtendBaseWidget(g)
+	return g
+}
+
+func (g *Graph) CreateRenderer() fyne.WidgetRenderer {
+	objects := []fyne.CanvasObject{}
+	for _, node := range g.Nodes {
+		objects = append(objects, node.circle)
+		for _, edge := range node.Edges {
+			objects = append(objects, edge.line)
+		}
+	}
+	return widget.NewSimpleRenderer(container.NewWithoutLayout(objects...))
+}
+
+func (g *Graph) AddNode(id string) *GraphNode {
+	circle := canvas.NewCircle(color.Transparent)
+	var x, y float32 = 100, 100
+	circle.Move(fyne.NewPos(x, y))
+	node := &GraphNode{
+		ID:     id,
+		circle: circle,
+		Edges:  []*GraphEdge{},
+	}
+	g.Nodes = append(g.Nodes, node)
+	return node
+}
+
+func(g *Graph) RemoveNode(node *GraphNode) {
+	// Remove edges connected to the node
+	for _, edge := range node.Edges {
+		g.RemoveEdge(edge)
+	}
+
+	// Remove the node from the graph
+	for i, n := range g.Nodes {
+		if n == node {
+			g.Nodes = append(g.Nodes[:i], g.Nodes[i+1:]...)
+			break
+		}
+	}
+}
+
+func(g *Graph) RemoveEdge(edge *GraphEdge) {
+	// Remove the edge from the "From" node
+	for i, e := range edge.From.Edges {
+		if e == edge {
+			edge.From.Edges = append(edge.From.Edges[:i], edge.From.Edges[i+1:]...)
+			break
+		}
+	}
+
+	// Remove the edge from the "To" node
+	for i, e := range edge.To.Edges {
+		if e == edge {
+			edge.To.Edges = append(edge.To.Edges[:i], edge.To.Edges[i+1:]...)
+			break
+		}
+	}
+
+	// Remove the edge from the graph's edge list
+	for i, e := range g.Edges {
+		if e == edge {
+			g.Edges = append(g.Edges[:i], g.Edges[i+1:]...)
+			break
+		}
+	}
+}
+
+func(g *Graph) AddEdge(from, to *GraphNode) *GraphEdge {
+	line := canvas.NewLine(color.Black)
+	line.StrokeWidth = 2
+	edge := &GraphEdge{
+		line: line,
+		From: from,
+		To:   to,
+	}
+	from.Edges = append(from.Edges, edge)
+	to.Edges = append(to.Edges, edge)
+	g.Edges = append(g.Edges, edge)
+	return edge
+}
+
+type GraphLayout struct {
+	g *Graph
+}
+
+func (l *GraphLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
+
+}
+
+func (l *GraphLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	return fyne.NewSize(200, 200)
+}

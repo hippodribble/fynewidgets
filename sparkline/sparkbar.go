@@ -18,6 +18,10 @@ type XY struct {
 
 type XYs []XY
 
+// a sparkline bar chart - a series of vertical bars representing a series of values
+//   - the bars are scaled to fit the height of the widget
+//   - w,h are width and height of the widget
+//   - n is the maximum number of x,y values that can be shown at once - the oldest values are dropped when new values are added
 type SparkBar struct {
 	widget.BaseWidget
 	Image                  *canvas.Image

@@ -1,0 +1,92 @@
+package dataflow
+
+import (
+	"fmt"
+	"image/color"
+	"os"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
+)
+
+type Parameter struct {
+	Name    string
+	Value   any
+	isInput bool
+}
+
+func NewParameter(name string, value any, input bool) *Parameter {
+	return &Parameter{Name: name, Value: value, isInput: input}
+}
+
+type ParameterView struct {
+	widget.BaseWidget
+	name                       *canvas.Text
+	square, background, spacer *canvas.Rectangle
+	Parameter                  *Parameter
+	channelClick               chan *ParameterView
+}
+
+func NewParameterView(p *Parameter, chanClickOut chan *ParameterView) *ParameterView {
+	l := canvas.NewText(p.Name, theme.Color(theme.ColorNameForeground))
+	l.TextStyle.Italic = true
+	bk := canvas.NewRectangle(color.Gray{128})
+	bk.SetMinSize(fyne.NewSize(100, 100))
+	// bk.CornerRadius = 20
+	sq := canvas.NewRectangle(theme.Color(theme.ColorNameBackground))
+	sq.StrokeColor = theme.Color(theme.ColorNameForeground)
+	sq.StrokeWidth = 1
+	sq.SetMinSize(fyne.NewSize(15, 15))
+	v := &ParameterView{name: l, square: sq, background: bk, Parameter: p, channelClick: chanClickOut}
+	v.ExtendBaseWidget(v)
+	return v
+}
+
+func (v *ParameterView) CreateRenderer() fyne.WidgetRenderer {
+	fmt.Println("create renderer for parameter", v.Parameter.Name)
+	c := container.NewStack(v.background,
+		container.NewBorder(
+			nil, nil,
+			v.square, nil,
+			v.name,
+		))
+	if !v.Parameter.isInput {
+		c = container.NewStack(v.background,
+			container.NewBorder(
+				nil, nil,
+				nil, v.square,
+				v.name,
+			))
+	}
+	return widget.NewSimpleRenderer(
+		c,
+	)
+}
+
+func (v *ParameterView)Type(){
+	switch v.Parameter.Value.(type){
+	case float64:
+		fmt.Println("Float Value")
+	case int:
+		fmt.Println("Integer Value")
+	case os.File:
+		fmt.Println("File Value")
+	}
+}
+
+func (v *ParameterView) MinSize() fyne.Size {
+	sz := v.square.Size()
+	w, h := sz.Width, sz.Height
+	w += v.name.Size().Width
+	h = max(h, v.name.Size().Height)
+	return fyne.NewSize(100, 20)
+}
+
+func (v *ParameterView) MouseDown(e *desktop.MouseEvent) {}
+func (v *ParameterView) MouseUp(e *desktop.MouseEvent) {
+	v.channelClick <- v
+}

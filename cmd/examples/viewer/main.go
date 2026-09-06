@@ -35,6 +35,5 @@ func shutdown(){
 func saveprefs(){
 	myprefs.SetFloat("mainwindow.width",float64(mainwindow.Canvas().Size().Width))
 	myprefs.SetFloat("mainwindow.height",float64(mainwindow.Canvas().Size().Height))
-
 }
 

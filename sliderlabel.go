@@ -51,6 +51,32 @@ func (s *SliderLabel) CreateRenderer() fyne.WidgetRenderer {
 	return widget.NewSimpleRenderer(c)
 }
 
+func(s *SliderLabel) SetValue(v float64) {
+	s.value.Set(v)
+	s.slider.Refresh()
+	s.label.Text = fmt.Sprintf("%.1f", v)
+	s.label.Refresh()
+}
+
+func(s *SliderLabel) Value() float64 {
+	v, _ := s.value.Get()
+	return v
+}
+
+func(s *SliderLabel) SetOnChanged(f func(float64)) {
+	s.slider.OnChanged = func(v float64) {
+		f(v)
+	}
+}
+
+func(s *SliderLabel)SetVertical(b bool) {
+	if b{
+		s.slider.Orientation = widget.Vertical
+	} else {
+		s.slider.Orientation = widget.Horizontal
+	}
+}
+
 type SliderLabelLayout struct {
 	sl *SliderLabel
 }

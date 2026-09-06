@@ -126,31 +126,37 @@ func gui() fyne.CanvasObject {
 		dc.SetChannel(dcChan)
 		x := 0.0
 		for {
-			time.Sleep(time.Millisecond * 20)
-			t := fmt.Sprintf("%.1f", x)
-			dcChan <- fynewidgets.CircularData{Value: x + rand.NormFloat64(), Text: t}
+			time.Sleep(time.Millisecond * 5)
+			y := x + rand.NormFloat64()
+			y = math.Mod(y, 360)
+			t := fmt.Sprintf("%.1f", y)
+			dcChan <- fynewidgets.CircularData{Value: y, Text: t}
 			x += 0.1
 		}
 	}()
 	N := 100
 	x := 0.0
 	sp1 := sparkline.NewSparkBar(100, 100, N, color.RGBA{255, 128, 0, 255})
-	for range N/2 {
+	for range N / 2 {
 		sp1.AddPoint(sparkline.XY{X: x, Y: rand.Float64() * 33})
 		x += .1
 	}
 	go func() {
-
 		for {
-			time.Sleep(time.Millisecond * 10)
+			time.Sleep(time.Millisecond * 6)
 			fyne.Do(func() {
-				sp1.AddPoint(sparkline.XY{X: x, Y: math.Sin(x) })
+				sp1.AddPoint(sparkline.XY{X: x, Y: math.Sin(x)})
 			})
 			x += .1
 		}
 	}()
 
-	sprow := container.NewAdaptiveGrid(5, widget.NewLabel("Sparklines"),sp1,fynewidgets.NewClockRed(90))
+	sprow := container.NewAdaptiveGrid(5, widget.NewLabel("Sparklines"), sp1, fynewidgets.NewClockRed(90))
+	togglerow := container.NewGridWithColumns(5)
+	for i:=range 5 {
+		tb := fynewidgets.NewToggleButton(fmt.Sprintf("Flux Capacitor %d",i+1), func() { fmt.Println("Flux Capacitor Pressed") })
+		togglerow.Add(tb)
+	}
 
 	return container.NewBorder(
 		nil, status,
@@ -170,6 +176,7 @@ func gui() fyne.CanvasObject {
 			nv,
 			roundrow,
 			sprow,
+			togglerow,
 			// clock,
 			// gp,
 		),

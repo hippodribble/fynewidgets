@@ -13,6 +13,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/pkg/errors"
+	"golang.org/x/image/colornames"
 )
 
 // PolygonalButtons are a closely-packed group of buttons laid out in a polygon.
@@ -30,7 +31,7 @@ func NewPolygonalButtons(buttons []*widget.Button, diameter, innerdiameter int) 
 		return nil, errors.New("no buttons provided")
 	}
 
-	poly := canvas.NewPolygon(uint(len(buttons)), orange)
+	poly := canvas.NewPolygon(uint(len(buttons)), colornames.Orange)
 	poly.CornerRadius = canvas.RadiusMaximum
 	shapes := []fyne.CanvasObject{poly}
 	for range len(buttons) {

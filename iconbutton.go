@@ -74,7 +74,7 @@ func (b *IconButton) MouseDown(e *desktop.MouseEvent) {
 		}()
 	}
 }
-func (b *IconButton) MouseUp(e *desktop.MouseEvent) {}
+func (b *IconButton) MouseUp(e *desktop.MouseEvent) {b.f()}
 
 func (b *IconButton) isInCircle(e *desktop.MouseEvent) bool {
 	x, y := e.Position.X, e.Position.Y

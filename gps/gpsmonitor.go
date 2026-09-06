@@ -2,9 +2,11 @@ package gps
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"image/color"
 	"log"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -17,8 +19,6 @@ import (
 	"github.com/ncruces/zenity"
 	"go.bug.st/serial"
 )
-
-// const MAXLENGTH = 5
 
 type GPSMonitor struct {
 	widget.BaseWidget
@@ -41,13 +41,13 @@ type GPSMonitor struct {
 
 func NewGPSMonitor() *GPSMonitor {
 
-	Nsats := 96
+	Nsats := 224
 
 	mon := &GPSMonitor{
 
 		radioSource:     widget.NewRadioGroup([]string{"NET", "USB", "FILE", "DUMMY"}, func(s string) {}),
 		radioFilter:     widget.NewRadioGroup([]string{"GSV", "GLL", "GGA", "RMC", "GSA", "VTG", "ZDA"}, func(s string) {}),
-		chanIn:          make(chan GPSRecord),
+		chanIn:          make(chan GPSRecord, 10),
 		status:          widget.NewLabel("ready"),
 		history:         *NewGPSHistory(500),
 		filteredHistory: *NewGPSHistory(500),
@@ -64,8 +64,6 @@ func NewGPSMonitor() *GPSMonitor {
 		mon.gsvs[i] = NewGSV(prn)
 		mon.gsvs[i].data.PRN = prn
 	}
-
-	// make slice from map for the radar display - could probably do this the radar code
 
 	mon.radar = NewGPSRadar(mon.gsvs, mon.TTL)
 
@@ -89,7 +87,9 @@ func NewGPSMonitor() *GPSMonitor {
 		},
 	)
 
+	// go mon.Strobe()
 	go mon.listen()
+	mon.light.Off()
 	go mon.clearDeadSVs()
 
 	mon.ExtendBaseWidget(mon)
@@ -97,10 +97,6 @@ func NewGPSMonitor() *GPSMonitor {
 }
 
 func (m *GPSMonitor) CreateRenderer() fyne.WidgetRenderer {
-
-	// rLeft := canvas.NewRectangle(color.Transparent)
-	// rLeft.StrokeWidth = 1
-	// rLeft.StrokeColor = theme.Color(theme.ColorNameForeground)
 
 	rRadar := canvas.NewRectangle(color.Transparent)
 	rRadar.StrokeWidth = .5
@@ -149,7 +145,6 @@ func (m *GPSMonitor) CreateRenderer() fyne.WidgetRenderer {
 
 func (m *GPSMonitor) filterHistory() {
 	m.filteredHistory = *NewGPSHistory(500)
-	// fmt.Println(m.filteredHistory.Records)
 	for _, rec := range m.history.Records {
 		if rec.Type() == m.historyFilter || m.historyFilter == "" {
 			m.filteredHistory.Add(rec)
@@ -159,7 +154,7 @@ func (m *GPSMonitor) filterHistory() {
 
 func (m *GPSMonitor) listen() {
 	for record := range m.chanIn {
-		m.light.Flash(50)
+		m.light.On()
 		m.history.Add(record)
 		m.filterHistory()
 		fyne.Do(m.listHistory.Refresh)
@@ -271,16 +266,14 @@ func (m *GPSMonitor) listen() {
 	}
 }
 
-
-
 func (m *GPSMonitor) useUSB() {
 	ports, err := serial.GetPortsList()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err, ". Quitting.")
 	}
 	newports := []string{}
 	for _, p := range ports {
-		if strings.Contains(p, "tty.usbmodem") {
+		if strings.Contains(p, "cu.usbmodem") {
 			newports = append(newports, p)
 		}
 	}
@@ -296,6 +289,7 @@ func (m *GPSMonitor) useUSB() {
 		}
 	}
 	m.status.SetText(fmt.Sprintf("Opening port: %s", ports[0]))
+	fmt.Printf("Opening port: %s\n", ports[0])
 	m.done = false
 
 	go func() {
@@ -307,7 +301,8 @@ func (m *GPSMonitor) useUSB() {
 		}
 		port, err := serial.Open(ports[0], &mode)
 		if err != nil {
-			log.Fatalln(err)
+			log.Println(err)
+			return
 		}
 		defer func() {
 			port.Close()
@@ -324,9 +319,103 @@ func (m *GPSMonitor) useUSB() {
 }
 
 func (m *GPSMonitor) useNetwork() {
+	m.done = true
+	go func() {
+		conn, err := net.Dial("tcp", "localhost:2947")
+		if err != nil {
+			log.Fatalln("No server")
+		}
+		defer conn.Close()
+		// fmt.Println("Set gpsd watch mode as NMEA")
+		// fmt.Fprintln(conn, `?WATCH={"enable":true,"json":true}`)
+		fmt.Fprintln(conn, `?WATCH={"enable":true,"nmea":true}`)
+
+		// m.readGPSDJSON(conn)
+		m.readGPSDNMEAOverTCP2947(conn)
+	}()
+}
+
+func (m *GPSMonitor) readGPSDJSONOverTCP2947(conn net.Conn) {
+	m.done = false
+	fmt.Println("reading connection. done is", m.done)
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		line := scanner.Text()
+		// fmt.Println(line)
+
+		if m.done {
+			return
+		}
+
+		fyne.Do(func() { m.light.Flash(30) })
+
+		// Generic envelope to detect class:
+		var env struct {
+			Class string `json:"class"`
+		}
+		if err := json.Unmarshal([]byte(line), &env); err != nil {
+			log.Printf("bad json: %v (%s)", err, line)
+			continue
+		}
+		// fmt.Printf("Class: %s\n", env.Class)
+
+		switch env.Class {
+		case "TPV":
+			var tpv tpv
+			if err := json.Unmarshal([]byte(line), &tpv); err == nil {
+				// fmt.Printf("TPV: %+v\n", tpv)
+				if tpv.Lat == 0 && tpv.Lon == 0 {
+					continue
+				}
+				fmt.Printf("Time: %v Lat: %.6f Lon: %.6f\n", tpv.Time, tpv.Lat, tpv.Lon)
+			} else {
+				fmt.Println("JSON error")
+			}
+		case "SKY":
+			var sky sky
+			if err := json.Unmarshal([]byte(line), &sky); err == nil {
+				// fmt.Printf("SKY: %+v\n", sky)
+			}
+			// handle satellite info
+			// other message types...
+			for _, sat := range sky.Satellites {
+				if sat.Ss > 1000 {
+					fmt.Printf("Satellite PRN: %3d, GNSSID: %3d, SIGID: %3d SNR %.1f dB Hz \n", sat.PRN, sat.Gnssid, sat.Sigid, sat.Ss)
+				}
+				// fmt.Printf("Satellite PRN: %d, Az: %.2f, El: %.2f, SNR: %.2f, Health: %d, GNSSID: %d, SIGID: %d\n",
+				// 	sat.PRN, sat.Az, sat.El, sat.Ss, sat.Health, sat.Gnssid, sat.Sigid)
+			}
+		default:
+			// fmt.Printf("Other class: %s\n", env.Class)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		log.Printf("scanner error: %v", err)
+	}
+}
+
+func (m *GPSMonitor) readGPSDNMEAOverTCP2947(conn2 net.Conn) {
+
+	_, err := conn2.Write([]byte(`?WATCH={"enable":true,"nmea":true}` + "\n"))
+	if err != nil {
+		log.Fatalln("Error requesting stream")
+	}
+	m.done = false
+	scanner := bufio.NewScanner(conn2)
+	for scanner.Scan() && !m.done {
+		line := scanner.Text()
+		// if !strings.Contains(line,"RMC"){continue}
+		// fmt.Println(line)
+		// fyne.Do(func() { m.light.Flash(20) })
+		m.chanIn <- GPSRecord(line)
+	}
+	if err := scanner.Err(); err != nil {
+		log.Printf("scanner error: %v", err)
+	}
 }
 
 func (m *GPSMonitor) useFile() {
+	m.done = true
 	m.done = false
 	f, err := zenity.SelectFile(
 		zenity.FileFilters{zenity.FileFilter{
@@ -353,6 +442,7 @@ func (m *GPSMonitor) useFile() {
 }
 
 func (m *GPSMonitor) useDummy() {
+	m.done = true
 	m.done = false
 	m.status.SetText("Using Dummy Data")
 	records := strings.Split(smallString, "\n")
@@ -367,7 +457,7 @@ func (m *GPSMonitor) useDummy() {
 			if index == len(records)-1 {
 				index = 0
 			}
-			time.Sleep(time.Millisecond * 200)
+			time.Sleep(time.Millisecond * 800)
 		}
 	}()
 }
@@ -379,7 +469,6 @@ func (m *GPSMonitor) changeSource(sourceName string) {
 		return
 	}
 	m.status.SetText(fmt.Sprintf("%s MODE", sourceName))
-	// time.Sleep(time.Millisecond * 100)
 	switch sourceName {
 	case "NET":
 		m.useNetwork()
@@ -396,8 +485,11 @@ func (m *GPSMonitor) clearDeadSVs() {
 	for range m.tickClear.C {
 		for _, v := range m.gsvs {
 			if time.Since(v.data.lastupdate).Seconds() > m.TTL {
-				v.clear()
-				v.Refresh()
+				fyne.Do(func() {
+					v.clear()
+					v.Refresh()
+					m.light.Off()
+				})
 			}
 		}
 	}

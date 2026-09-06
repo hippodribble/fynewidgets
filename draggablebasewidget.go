@@ -1,6 +1,8 @@
 package fynewidgets
 
 import (
+	"fmt"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
@@ -40,7 +42,7 @@ func (d *DraggableBaseWidget) MouseDown(ev *desktop.MouseEvent) {
 	d.dragstartmouse = ev.AbsolutePosition
 	d.dragstartwidget = d.Position()
 	if ev.Position.X/d.Size().Width > 0.9 && ev.Position.Y/d.Size().Height > 0.9 {
-		// fmt.Println("Resize")
+		fmt.Println("Resize")
 		d.mode = Resize
 		d.initialSize = d.Size()
 	} else {
@@ -50,4 +52,8 @@ func (d *DraggableBaseWidget) MouseDown(ev *desktop.MouseEvent) {
 }
 func (d *DraggableBaseWidget) MouseUp(ev *desktop.MouseEvent) {
 	d.dragfinishmouse = ev.AbsolutePosition
+}
+
+func (d *DraggableBaseWidget) MinSize() fyne.Size {
+	return fyne.NewSize(300, 300)
 }

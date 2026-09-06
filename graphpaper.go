@@ -15,15 +15,21 @@ import (
 
 type GraphPaper struct {
 	widget.BaseWidget
-	minorSpace, majorSpace            int
-	w, h                              int
-	majorColor, minorColor, baseColor color.Color
-	cv                                *canvas.Image
+	minorSpace, majorSpace                      int
+	w, h                                        int
+	majorColor, minorColor, midColor, baseColor color.Color
+	cv                                          *canvas.Image
+	logmode                                     bool
 }
 
-func NewGraphPaper(major, minor, w, h int, majorColor, minorColor, baseColor color.Color) (*GraphPaper, error) {
+func NewGraphPaper(major, minor, w, h int, majorColor, minorColor, midColor, baseColor color.Color, logarithmic bool) (*GraphPaper, error) {
 
-	g := &GraphPaper{minorSpace: minor, majorSpace: major, majorColor: majorColor, minorColor: minorColor, baseColor: baseColor,w: w,h: h}
+	g := &GraphPaper{minorSpace: minor, majorSpace: major,
+		majorColor: majorColor, minorColor: minorColor,
+		midColor: midColor, baseColor: baseColor,
+		w: w, h: h,
+		logmode: logarithmic,
+	}
 	err := g.MakePaper()
 	if err != nil {
 		return nil, err
@@ -42,33 +48,54 @@ func (g *GraphPaper) MakePaper() error {
 
 	for x := range g.w {
 		for y := range g.h {
-			im.Set(x,y,g.baseColor)
+			im.Set(x, y, g.baseColor)
 		}
 	}
 
-	for x := 0; x <= g.w; x += g.minorSpace { // vertical minor lines
-		for y := range g.h {
-			im.Set(x, y, g.minorColor)
-		}
-	}
-	for x := 0; x <= g.w; x += g.majorSpace { // vertical major lines
-		for y := range g.h {
-			im.Set(x, y, g.majorColor)
-		}
-	}
+	switch g.logmode {
+	case false:
 
-	for x := range g.h {
+		for x := 0; x <= g.w; x += g.minorSpace { // vertical minor lines
+			for y := range g.h {
+				im.Set(x, y, g.minorColor)
+			}
+		}
+
+		for x := 0; x <= g.w; x += g.majorSpace / 2 { // vertical major lines
+			for y := range g.h {
+				im.Set(x, y, g.midColor)
+			}
+		}
+
 		for y := 0; y <= g.h; y += g.minorSpace { // horizontal minor lines
-			im.Set(x, y, g.minorColor)
+			for x := range g.w {
+				im.Set(x, y, g.minorColor)
+			}
 		}
-	}
-	for x := range g.h {
+
+		for y := 0; y <= g.h; y += g.majorSpace / 2 { // horizontal minor lines
+			for x := range g.w {
+				im.Set(x, y, g.midColor)
+			}
+		}
+
+		for x := 0; x <= g.w; x += g.majorSpace { // vertical major lines
+			for y := range g.h {
+				im.Set(x, y, g.majorColor)
+			}
+		}
+
 		for y := 0; y <= g.h; y += g.majorSpace { // horizontal minor lines
-			im.Set(x, y, g.majorColor)
+			for x := range g.w {
+				im.Set(x, y, g.majorColor)
+			}
 		}
+	case true:
+		log.Println("Not implemented yet.")
+
 	}
 
-	saveimage(im)
+	// SaveImage(im)
 
 	g.cv = canvas.NewImageFromImage(im)
 	g.cv.FillMode = canvas.ImageFillOriginal
@@ -76,11 +103,14 @@ func (g *GraphPaper) MakePaper() error {
 	return nil
 }
 
-
-func saveimage(im image.Image){
-	w,err:=os.Create("testgraphpaperimage.png")
-	if err!=nil{log.Fatalln(err)}
+func (g *GraphPaper) SaveImage() {
+	w, err := os.Create("graphpaper.png")
+	if err != nil {
+		log.Fatalln(err)
+	}
 	defer w.Close()
-	err=png.Encode(w,im)
-	if err!=nil{log.Fatalln(err)}
+	err = png.Encode(w, g.cv.Image)
+	if err != nil {
+		log.Fatalln(err)
+	}
 }

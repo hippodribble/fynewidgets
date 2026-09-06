@@ -11,6 +11,7 @@ import (
 	"slices"
 )
 
+// A grayscale image where the gray level represents z(x,y) height. The image is rescaled to the 1% and 99% quantiles of the pixel values.
 type ElevationImage struct {
 	*image.Gray16
 	format string

@@ -8,6 +8,8 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+// A clock which displays the current time as text, and can be paused by clicking on it
+// Internally, it's a widget.Label which is updated every 100ms with the current time
 type Clock struct {
 	widget.BaseWidget
 	ticker time.Ticker

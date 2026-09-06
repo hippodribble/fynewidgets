@@ -12,6 +12,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+// A Dial gauge widget that can be used to display numerical data.
 type Dial struct {
 	widget.BaseWidget
 	donut                 *canvas.Arc
@@ -61,6 +62,7 @@ func (d *Dial) SetMax(v float32) {
 }
 
 func (d *Dial) SetValue(v float32) {
+	if v>d.max{v-=d.max}
 	d.value = v
 	f := (d.value - d.min) / (d.max - d.min)
 	d.donut.EndAngle = f*270 - 135

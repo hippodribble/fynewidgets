@@ -1,0 +1,10 @@
+[Details]
+  Icon = "x.png"
+  Name = "Graph Paper"
+  ID = "com.github.hippodribble.fynewidgets.graphpaper"
+  Version = "0.1.0"
+  Build = 2
+
+
+[Migrations]
+fyneDo=true

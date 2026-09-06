@@ -7,11 +7,11 @@ import (
 )
 
 func main() {
-	ap := app.New()
+	ap := app.NewWithID("com.github.hippodribble.fynewidgets.gps")
 	w := ap.NewWindow("Zoid")
 	w.SetContent(gui())
 	// w.Resize(fyne.NewSize(1000, 1000))
-	w.SetFullScreen(true)
+	// w.SetFullScreen(true)
 	w.ShowAndRun()
 }
 

@@ -36,9 +36,13 @@ func (l *Light) CreateRenderer() fyne.WidgetRenderer {
 func (l *Light) Off() {
 	l.c.Hide()
 }
+
 func (l *Light) On() {
-	l.c.Show()
+	if l.c.Hidden {
+		l.c.Show()
+	}
 }
+
 func (l *Light) Flash(milliseconds int) {
 	go func() {
 		fyne.Do(l.On)

@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"golang.org/x/image/colornames"
 )
 
 // RadialButtons are a set of concentric circles with arbitrary colours and a popup label
@@ -98,15 +99,14 @@ func (r *RadialButtons) MouseMoved(evt *desktop.MouseEvent) {
 	}
 	for i := range r.buttons {
 		if i == ring {
-			r.shapes[i].(*canvas.Circle).FillColor = orange
+			r.shapes[i].(*canvas.Circle).FillColor = colornames.Orange
 			r.Refresh()
 		} else {
 			r.shapes[i].(*canvas.Circle).FillColor = r.fill
 			r.Refresh()
 		}
 	}
-	// r.shapes[ring].(*canvas.Circle).FillColor = orange
-	// r.Refresh()
+	
 
 }
 func (r *RadialButtons) MouseOut() {

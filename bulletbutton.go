@@ -23,6 +23,7 @@ type BulletButton struct {
 	busy                    bool
 }
 
+// NewBulletButton creates a new BulletButton with the specified text, number of flashes when clicked, and click handler.
 func NewBulletButton(text string, nFlashes int, onClicked func()) *BulletButton {
 	r := canvas.NewRectangle(color.Gray{64})
 	r.CornerRadius = canvas.RadiusMaximum

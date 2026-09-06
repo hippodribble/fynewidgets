@@ -35,7 +35,8 @@ import (
 // 	myWindow := myApp.NewWindow("Clip Container")
 
 // 	big := canvas.NewRectangle(color.NRGBA{R: 0x33, G: 0x99, B: 0xcc, A: 0xff})
-// 	big.SetMinSize(fyne.NewSize(400, 400)) // much bigger than the window
+// 	big.CornerRadius=20
+// 	// big.SetMinSize(fyne.NewSize(400, 400)) // much bigger than the window
 
 // 	clip := container.NewClip(big)
 
@@ -49,7 +50,7 @@ import (
 // 	w := myApp.NewWindow("Gradient")
 
 // 	// gradient := canvas.NewHorizontalGradient(color.White, color.Black)
-// 	gradient := canvas.NewRadialGradient(color.RGBA{255,0,0,255}, color.RGBA{0,0,255,255})
+// 	gradient := canvas.NewRadialGradient(color.RGBA{255, 0, 0, 255}, color.RGBA{0, 0, 255, 255})
 // 	w.SetContent(gradient)
 
 // 	w.Resize(fyne.NewSize(100, 100))

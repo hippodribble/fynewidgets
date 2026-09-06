@@ -23,7 +23,7 @@ type GPSRadar struct {
 	sats       []*GSV
 	circles    []*canvas.Circle
 	radials    []*canvas.Line
-	squares    []*canvas.Rectangle
+	satellites    []*canvas.RegularPolygon
 	labels     []*canvas.Text
 	dphi       float32
 	daz        float32
@@ -36,7 +36,7 @@ func NewGPSRadar(sats []*GSV, ttl float64) *GPSRadar {
 	r := &GPSRadar{sats: sats, TTL: ttl}
 	r.makeCircles(10)
 	r.makeRadials(10)
-	r.makeSquares(15)
+	r.makeSatellites(15)
 	r.makeLabels()
 	r.ExtendBaseWidget(r)
 	return r
@@ -51,7 +51,7 @@ func (r *GPSRadar) CreateRenderer() fyne.WidgetRenderer {
 		c.Add(radial)
 	}
 
-	for _, s := range r.squares {
+	for _, s := range r.satellites {
 		c.Add(s)
 	}
 
@@ -89,13 +89,13 @@ func (r *GPSRadar) makeRadials(degrees int) {
 	}
 }
 
-func (r *GPSRadar) makeSquares(width float32) {
-	r.squares = []*canvas.Rectangle{}
+func (r *GPSRadar) makeSatellites(width float32) {
+	r.satellites = []*canvas.RegularPolygon{}
 	for range r.sats {
-		square := canvas.NewRectangle(color.RGBA{255, 255, 0, 255})
-		square.StrokeColor = color.RGBA{0, 0, 255, 255}
-		square.StrokeWidth = 1
-		r.squares = append(r.squares, square)
+		poly := canvas.NewRegularPolygon(7,color.RGBA{255, 255, 0, 255})
+		poly.StrokeColor = color.RGBA{0, 0, 255, 255}
+		poly.StrokeWidth = 1
+		r.satellites = append(r.satellites, poly)
 	}
 	r.squaresize = width
 }
@@ -142,7 +142,7 @@ func (r RadarLayout) Layout(os []fyne.CanvasObject, sz fyne.Size) {
 			l.Position2 = fyne.NewPos(cx+dx, cy+dy)
 			radialcount++
 		}
-		if sq, ok := o.(*canvas.Rectangle); ok {
+		if sq, ok := o.(*canvas.RegularPolygon); ok {
 
 			age := time.Since(r.r.sats[squarecount].data.lastupdate).Seconds()
 			if age > r.r.TTL {
@@ -154,6 +154,7 @@ func (r RadarLayout) Layout(os []fyne.CanvasObject, sz fyne.Size) {
 					sq.FillColor=color.RGBA{255,128,0,255}
 				}else if prn>32{
 					sq.FillColor=color.RGBA{255,0,0,255}
+					sq.Sides=3
 				}else{
 					sq.FillColor=color.RGBA{0,255,255,255}
 				}
@@ -164,10 +165,13 @@ func (r RadarLayout) Layout(os []fyne.CanvasObject, sz fyne.Size) {
 				rr := float64(radius) * (90 - el) / 90 // radius
 				x := float32(rr * math.Cos(az))
 				y := float32(rr * math.Sin(az))
-				x = cx + x - r.r.squaresize/2
-				y = cy - y - r.r.squaresize/2
+				snr:=float32(sat.data.SNR)/50+1
+				size:=r.r.squaresize*snr
+				x = cx + x - size/2
+				y = cy - y - size/2
+				// fmt.Println(size)
 				sq.Move(fyne.NewPos(x, y))
-				sq.Resize(fyne.NewSize(r.r.squaresize, r.r.squaresize))
+				sq.Resize(fyne.NewSize(size,size))
 				sq.Show()
 			}
 			squarecount++
@@ -182,6 +186,7 @@ func (r RadarLayout) Layout(os []fyne.CanvasObject, sz fyne.Size) {
 				az := 90 - float64(sat.data.Azimuth)
 				az *= 3.14159 / 180
 				el := float64(sat.data.Elevation)
+				
 				rr := float64(radius) * (90 - el) / 90 // radius
 				x := float32(rr * math.Cos(az))
 				y := float32(rr * math.Sin(az))
